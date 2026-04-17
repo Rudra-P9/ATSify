@@ -1,0 +1,43 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "User profile information",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "photoURL": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "email"]
+    },
+    "Scan": {
+      "title": "Scan",
+      "description": "Resume scan results",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "resumeText": { "type": "string" },
+        "jobDescription": { "type": "string" },
+        "results": {
+          "type": "array",
+          "items": { "type": "object" }
+        },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "resumeText", "results", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/scans/{scanId}": {
+      "schema": "Scan",
+      "description": "Resume scans"
+    }
+  }
+}

@@ -43,6 +43,7 @@ service cloud.firestore {
         && data.resumeText.size() <= 50000
         && data.results is list
         && data.results.size() == 6
+        && data.metadata is map
         && data.createdAt == request.time;
     }
 

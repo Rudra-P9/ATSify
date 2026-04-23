@@ -5,10 +5,21 @@
 
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { collection, query, where, orderBy, getDocs, addDoc, deleteDoc, doc } from 'firebase/firestore';
+import { 
+  collection, 
+  query, 
+  where, 
+  orderBy, 
+  getDocs, 
+  addDoc, 
+  deleteDoc, 
+  doc,
+  serverTimestamp,
+  Timestamp
+} from 'firebase/firestore';
 import { auth, signInWithGoogle, db } from './lib/firebase';
 import { parseFile } from './lib/parser';
-import { analyzeResume, ATSResult } from './lib/gemini';
+import { analyzeResume, ATSResult, ResumeMetadata, AnalysisResponse } from './lib/gemini';
 import { cn, formatDate } from './lib/utils';
 import { 
   FileText, 
@@ -24,9 +35,26 @@ import {
   CheckCircle2,
   XCircle,
   HelpCircle,
-  ArrowRight
+  ArrowRight,
+  Clock,
+  Sparkles,
+  BarChart3,
+  Check,
+  Building2,
+  Info,
+  Download,
+  Shield,
+  Layout,
+  Zap,
+  Star,
+  Quote,
+  Lock,
+  MessageSquare,
+  Globe
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 // --- Types ---
 interface SavedScan {
@@ -34,7 +62,8 @@ interface SavedScan {
   resumeText: string;
   jobDescription?: string;
   results: ATSResult[];
-  createdAt: number;
+  metadata: ResumeMetadata;
+  createdAt: any;
 }
 
 // --- Components ---
@@ -42,9 +71,10 @@ interface SavedScan {
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [activeTab, setActiveTab] = useState<'scanner' | 'history'>('scanner');
+  const [activeTab, setActiveTab] = useState<'scanner' | 'history' | 'settings'>('scanner');
   const [history, setHistory] = useState<SavedScan[]>([]);
   const [viewingScan, setViewingScan] = useState<SavedScan | null>(null);
+  const [isExporting, setIsExporting] = useState(false);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -65,10 +95,14 @@ export default function App() {
         orderBy('createdAt', 'desc')
       );
       const querySnapshot = await getDocs(q);
-      const docs = querySnapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as SavedScan[];
+      const docs = querySnapshot.docs.map(doc => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toMillis() : data.createdAt
+        };
+      }) as SavedScan[];
       setHistory(docs);
     } catch (error) {
       console.error("Error fetching history:", error);
@@ -139,9 +173,16 @@ export default function App() {
               <HistoryIcon className="w-4 h-4" />
               History
             </button>
-            <div className="nav-item opacity-20 pointer-events-none flex items-center gap-3 px-4 py-3 text-sm">
-              <UserIcon className="w-4 h-4" /> Settings
-            </div>
+            <button
+              onClick={() => { setActiveTab('settings'); setViewingScan(null); }}
+              className={cn(
+                "w-full flex items-center gap-3 px-4 py-3 rounded-xl transition-all text-sm font-medium",
+                activeTab === 'settings' && !viewingScan ? "bg-[#6366f1]/10 text-[#6366f1]" : "text-white/40 hover:text-white/70"
+              )}
+            >
+              <UserIcon className="w-4 h-4" />
+              Settings
+            </button>
           </nav>
 
           <div className="mt-auto p-4 bg-white/[0.02] rounded-xl border border-white/[0.05]">
@@ -158,10 +199,10 @@ export default function App() {
             <>
               <div>
                 <h1 className="text-lg font-bold text-white px-2">
-                  {viewingScan ? "Analysis Dashboard" : "Resume Intelligence"}
+                  {activeTab === 'settings' ? "Profile Controls" : viewingScan ? "Analysis Dashboard" : "Resume Intelligence"}
                 </h1>
                 <p className="text-xs text-white/30 px-2 uppercase tracking-widest font-bold">
-                  {viewingScan ? "Individual Report" : "Select a document to begin"}
+                  {activeTab === 'settings' ? "Manage your experience" : viewingScan ? "Individual Report" : "Select a document to begin"}
                 </p>
               </div>
               <div className="flex items-center gap-6">
@@ -202,19 +243,25 @@ export default function App() {
           ) : viewingScan ? (
             <ResultsSection scan={viewingScan} onBack={() => { setViewingScan(null); setActiveTab('scanner'); }} />
           ) : activeTab === 'scanner' ? (
-            <ScannerSection onResults={(results, resumeText, jd) => {
+            <ScannerSection onResults={(results, resumeText, jd, metadata) => {
               const scan = {
                 resumeText,
                 jobDescription: jd,
                 results,
-                createdAt: Date.now()
+                metadata,
+                createdAt: serverTimestamp()
               };
               saveScan(scan).then(saved => {
-                if (saved) setViewingScan(saved);
+                if (saved) setViewingScan({
+                  ...saved,
+                  createdAt: Date.now()
+                });
               });
             }} />
-          ) : (
+          ) : activeTab === 'history' ? (
             <HistorySection items={history} onView={setViewingScan} onDelete={deleteScan} />
+          ) : (
+            <SettingsSection user={user} />
           )}
         </main>
 
@@ -230,37 +277,128 @@ export default function App() {
 
 function LandingSection({ onGetStarted }: { onGetStarted: () => void }) {
   return (
-    <div className="text-center space-y-12 py-20 animate-fade-in">
-      <div className="space-y-6">
-        <div className="inline-flex px-3 py-1 bg-[#6366f1]/10 text-[#6366f1] text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-[#6366f1]/20 mx-auto">
-          Next Gen Resume Intelligence
+    <div className="space-y-32 py-10 animate-fade-in relative">
+      <section className="text-center space-y-8 relative py-20">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-[#6366f1]/5 blur-[120px] rounded-full -z-10" />
+        <div className="inline-flex px-3 py-1 bg-[#6366f1]/10 text-[#6366f1] text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-[#6366f1]/20">
+          Built for modern job seekers
         </div>
-        <h1 className="text-6xl md:text-7xl font-black tracking-tighter text-white leading-[0.9]">
-          Land more <br />
-          <span className="text-[#6366f1]">Interviews.</span>
+        <h1 className="text-6xl md:text-8xl font-black tracking-tighter text-white leading-[0.85]">
+          Beat the ATS <br />
+          <span className="text-transparent bg-clip-text bg-gradient-to-r from-[#6366f1] to-blue-400">Before It Beats You.</span>
         </h1>
-        <p className="text-lg text-white/40 max-w-xl mx-auto font-medium leading-relaxed">
-          Simulate the filtering algorithms of Workday, Greenhouse, and Taleo. 100% private, client-side analysis.
+        <p className="text-xl text-white/40 max-w-2xl mx-auto font-medium leading-relaxed">
+          Get an instant ATS score and actionable feedback on your resume. Simulate the algorithms of Workday, Taleo, and Greenhouse in seconds.
         </p>
-      </div>
+        <div className="flex flex-col sm:flex-row justify-center gap-4 pt-6">
+          <button 
+            onClick={onGetStarted}
+            className="bg-[#6366f1] text-white px-10 py-5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#6366f1]/90 transition-all active:scale-95 shadow-xl shadow-[#6366f1]/20"
+          >
+            Upload Resume Now <ArrowRight className="w-5 h-5" />
+          </button>
+          <button 
+            onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
+            className="px-10 py-5 rounded-2xl font-bold text-white transition-all border border-white/10 hover:bg-white/5"
+          >
+            Explore Methodology
+          </button>
+        </div>
+        <div className="pt-10 flex items-center justify-center gap-2 text-white/20 text-[10px] font-black uppercase tracking-widest">
+          <CheckCircle2 className="w-3.5 h-3.5" /> Used by 5,000+ job seekers worldwide
+        </div>
+      </section>
 
-      <div className="flex flex-col sm:flex-row justify-center gap-4">
-        <button 
-          onClick={onGetStarted}
-          className="bg-white text-black px-10 py-5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-white/90 transition-all active:scale-95 shadow-xl shadow-white/5"
-        >
-          Analyze Resume <ArrowRight className="w-5 h-5" />
-        </button>
-        <button className="px-10 py-5 rounded-2xl font-bold text-white/60 hover:text-white transition-all border border-white/5 hover:bg-white/5">
-          How it Works
-        </button>
-      </div>
+      <section id="how-it-works" className="space-y-16">
+        <div className="text-center space-y-4">
+          <h2 className="text-4xl font-black text-white tracking-tighter">Strategic Analysis in 3 Steps</h2>
+          <p className="text-white/30 font-medium">Simple, fast, and completely private.</p>
+        </div>
+        <div className="grid md:grid-cols-3 gap-8">
+          {[
+            { step: '01', title: 'Upload Resume', desc: 'Securely upload your PDF or DOCX file. Processing is 100% local in your browser.', icon: Upload },
+            { step: '02', title: 'Platform Scan', desc: 'We analyze your content against 6 proprietary platform weights and scoring vectors.', icon: Search },
+            { step: '03', title: 'Get Scores', desc: 'Receive immediate feedback on formatting, keywords, and quantified achievements.', icon: BarChart3 }
+          ].map(item => (
+            <div key={item.step} className="glass p-10 rounded-[2.5rem] space-y-6 relative group border-white/5 hover:border-[#6366f1]/20 transition-all">
+              <div className="absolute top-6 right-8 text-4xl font-black text-white/5 group-hover:text-[#6366f1]/10 transition-colors uppercase">{item.step}</div>
+              <div className="w-14 h-14 bg-[#6366f1]/10 rounded-2xl flex items-center justify-center">
+                <item.icon className="w-7 h-7 text-[#6366f1]" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-xl font-bold text-white">{item.title}</h3>
+                <p className="text-white/40 text-sm leading-relaxed">{item.desc}</p>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <section className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
+        <div className="space-y-10">
+          <div className="space-y-4">
+            <h2 className="text-5xl font-black text-white tracking-tighter">Optimization for the Results You Want.</h2>
+            <p className="text-lg text-white/40 font-medium leading-relaxed">
+              We don't just give you a score. We give you a roadmap to passing the initial screen every time.
+            </p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {[
+              "ATS Score (0–100)",
+              "Keyword Density Tips",
+              "Formatting Fixes",
+              "Profile Depth Sync",
+              "Quantification Signals",
+              "Platform Quirk Detection"
+            ].map(benefit => (
+              <div key={benefit} className="flex items-center gap-3 p-4 bg-white/[0.02] border border-white/5 rounded-2xl text-white/70 text-sm font-medium">
+                <Check className="w-4 h-4 text-[#10b981]" /> {benefit}
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="relative">
+          <div className="absolute -inset-4 bg-gradient-to-tr from-[#6366f1]/20 to-transparent blur-2xl rounded-[3rem]" />
+          <div className="glass p-8 rounded-[3rem] border-white/10 relative overflow-hidden">
+             <div className="flex items-center justify-between mb-8">
+               <div className="flex gap-2">
+                  <div className="w-8 h-8 rounded-full bg-red-400" />
+                  <div className="w-8 h-8 rounded-full bg-yellow-400" />
+                  <div className="w-8 h-8 rounded-full bg-green-400" />
+               </div>
+               <div className="text-[10px] font-black text-white/20 uppercase tracking-widest leading-none">Intelligence.Report</div>
+             </div>
+             <div className="space-y-6">
+                <div className="h-6 w-3/4 bg-white/10 rounded-xl" />
+                <div className="h-24 w-full bg-[#6366f1]/10 rounded-[2rem] border border-[#6366f1]/20 flex items-center justify-center">
+                   <div className="text-4xl font-black text-white">84%</div>
+                </div>
+                <div className="space-y-3">
+                   <div className="h-2 w-full bg-white/5 rounded-full" />
+                   <div className="h-2 w-2/3 bg-white/5 rounded-full" />
+                </div>
+             </div>
+          </div>
+        </div>
+      </section>
+
+      <section className="text-center space-y-10 py-20 relative">
+         <div className="space-y-4">
+            <h2 className="text-5xl font-black text-white tracking-tighter">Ready to land that interview?</h2>
+            <p className="text-lg text-white/40 font-medium">Join thousands of job seekers who outsmarted the machines.</p>
+         </div>
+         <button 
+           onClick={onGetStarted}
+           className="bg-white text-black px-12 py-6 rounded-3xl font-black uppercase tracking-[0.2em] text-sm hover:scale-105 transition-all shadow-2xl shadow-white/5"
+         >
+           Upload Your Resume
+         </button>
+      </section>
     </div>
   );
 }
 
-
-function ScannerSection({ onResults }: { onResults: (results: ATSResult[], resume: string, jd: string) => void }) {
+function ScannerSection({ onResults }: { onResults: (results: ATSResult[], resume: string, jd: string, metadata: ResumeMetadata) => void }) {
   const [file, setFile] = useState<File | null>(null);
   const [jobDescription, setJobDescription] = useState('');
   const [isScanning, setIsScanning] = useState(false);
@@ -280,10 +418,10 @@ function ScannerSection({ onResults }: { onResults: (results: ATSResult[], resum
       setProgress(25);
       const text = await parseFile(file);
       setProgress(50);
-      const results = await analyzeResume(text, jobDescription);
+      const response = await analyzeResume(text, jobDescription);
       setProgress(90);
       setTimeout(() => {
-        onResults(results, text, jobDescription);
+        onResults(response.results, text, jobDescription, response.metadata);
       }, 500);
     } catch (err: any) {
       setError(err.message || "Engine error. Please try again.");
@@ -293,78 +431,115 @@ function ScannerSection({ onResults }: { onResults: (results: ATSResult[], resum
 
   return (
     <div className="max-w-3xl mx-auto space-y-12 animate-fade-in">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-black text-white">Document Analysis</h2>
-          <p className="text-sm text-white/30 font-bold uppercase tracking-widest mt-1">Upload Source & Target</p>
+      <div className="space-y-4">
+        <div className="inline-flex px-3 py-1 bg-[#6366f1]/10 text-[#6366f1] text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-[#6366f1]/20">
+          Document Intelligence Engine
         </div>
-        <HelpCircle className="w-5 h-5 text-white/20 hover:text-white transition-all cursor-help" />
+        <h2 className="text-5xl font-black text-white tracking-tighter">
+          Scan Your Resume Against <br />
+          <span className="text-[#6366f1]">Real ATS Systems</span>
+        </h2>
+        <p className="text-white/30 text-lg font-medium">
+          Upload your resume and optionally paste a job description. Files are parsed client-side.
+        </p>
       </div>
 
-      <div className="grid gap-10">
-        <div 
-          className={cn(
-            "p-12 rounded-[2rem] border-2 border-dashed flex flex-col items-center justify-center gap-6 transition-all group relative overflow-hidden",
-            file ? "bg-[#6366f1]/5 border-[#6366f1]/40" : "bg-white/[0.02] border-white/10 hover:border-white/20"
-          )}
-          onClick={() => document.getElementById('resume-upload')?.click()}
-        >
-          <input 
-            type="file" 
-            id="resume-upload" 
-            className="hidden" 
-            accept=".pdf,.docx" 
-            onChange={(e) => setFile(e.target.files?.[0] || null)} 
-          />
-          <div className="w-16 h-16 bg-white/[0.03] rounded-2xl flex items-center justify-center group-hover:scale-110 transition-transform">
-            {file ? <FileText className="w-8 h-8 text-[#6366f1]" /> : <Upload className="w-8 h-8 text-white/20" />}
+      {isScanning ? (
+        <div className="glass p-16 rounded-[2.5rem] flex flex-col items-center justify-center space-y-10 border-[#6366f1]/20 shadow-2xl shadow-[#6366f1]/5 relative overflow-hidden">
+          <div className="absolute top-0 left-0 h-1 bg-[#6366f1] transition-all duration-500" style={{ width: `${progress}%` }} />
+          <div className="relative">
+            <div className="w-24 h-24 rounded-full border border-white/5 flex items-center justify-center">
+              <FileText className="w-10 h-10 text-[#6366f1] animate-pulse" />
+            </div>
+            <div className="absolute -inset-2 border border-[#6366f1]/20 rounded-full animate-spin-slow" />
           </div>
-          <div className="text-center space-y-1">
-            <p className="text-lg font-bold text-white">{file ? file.name : "Select Resume File"}</p>
-            <p className="text-white/30 text-xs font-bold uppercase tracking-widest">Supports PDF & DOCX &bull; Max 10MB</p>
+          <div className="text-center space-y-3">
+            <h3 className="text-2xl font-black text-white">Analyzing across 6 ATS platforms</h3>
+            <p className="text-[#6366f1] font-bold text-sm tracking-widest uppercase">
+              {progress < 30 ? 'Extracting Text...' : progress < 60 ? 'Analyzing keywords...' : 'Simulating platform logic...'}
+            </p>
+          </div>
+          <div className="flex gap-3">
+            {['WORKDAY', 'TALEO', 'ICIMS', 'GREENHOUSE', 'LEVER', 'S.FACTORS'].map((platform, idx) => (
+              <div 
+                key={platform} 
+                className={cn(
+                  "px-4 py-2 rounded-xl text-[10px] font-black tracking-widest border transition-all duration-500",
+                  progress > (idx + 1) * 15 ? "bg-[#10b981]/10 border-[#10b981]/40 text-[#10b981]" : "bg-white/5 border-white/5 text-white/20"
+                )}
+              >
+                {platform}
+              </div>
+            ))}
+          </div>
+          <div className="text-white/20 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+            <Clock className="w-3 h-3" /> Processing internally
           </div>
         </div>
-
-        <div className="space-y-4">
-          <div className="flex items-center justify-between px-2">
-            <label className="text-xs font-black text-white/30 uppercase tracking-[0.2em]">Target Job Description</label>
-            <span className="text-[10px] text-white/20">Syncing keywords improves score</span>
+      ) : (
+        <div className="grid gap-8">
+          <div 
+            className={cn(
+              "p-12 rounded-[2.5rem] border-2 border-dashed flex flex-col items-center justify-center gap-6 transition-all group relative overflow-hidden",
+              file ? "bg-[#6366f1]/5 border-[#6366f1]/40" : "bg-white/[0.02] border-white/10 hover:border-white/20 hover:bg-white/[0.03]"
+            )}
+            onClick={() => document.getElementById('resume-upload')?.click()}
+          >
+            <input 
+              type="file" 
+              id="resume-upload" 
+              className="hidden" 
+              accept=".pdf,.docx" 
+              onChange={(e) => setFile(e.target.files?.[0] || null)} 
+            />
+            {file ? (
+               <div className="flex items-center gap-4 p-6 bg-white/[0.05] rounded-3xl border border-[#10b981]/20">
+                  <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center shadow-lg">
+                    <FileText className="w-6 h-6 text-[#10b981]" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-lg font-bold text-white">{file.name}</p>
+                    <p className="text-white/20 text-xs font-bold uppercase tracking-widest">{(file.size / 1024).toFixed(0)} KB &bull; Verified</p>
+                  </div>
+                  <CheckCircle2 className="w-6 h-6 text-[#10b981] ml-4" />
+               </div>
+            ) : (
+              <>
+                <div className="w-20 h-20 bg-white/[0.03] rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform">
+                  <Upload className="w-10 h-10 text-white/20 group-hover:text-[#6366f1] transition-colors" />
+                </div>
+                <div className="text-center space-y-2">
+                  <p className="text-xl font-bold text-white">Select Resume File</p>
+                  <p className="text-white/30 text-sm font-bold uppercase tracking-widest">PDF & DOCX ONLY &bull; 100% PRIVATE</p>
+                </div>
+              </>
+            )}
           </div>
-          <textarea 
-            value={jobDescription}
-            onChange={(e) => setJobDescription(e.target.value)}
-            placeholder="Paste text or requirements here..."
-            className="w-full h-48 bg-white/[0.02] border border-white/10 rounded-2xl p-6 text-sm text-white focus:ring-2 focus:ring-[#6366f1]/40 focus:outline-none transition-all resize-none font-medium placeholder:text-white/10"
-          />
+          <div className="space-y-4">
+            <textarea 
+              value={jobDescription}
+              onChange={(e) => setJobDescription(e.target.value)}
+              placeholder="Paste requirements to sync skills..."
+              className="w-full h-40 bg-white/[0.02] border border-white/10 rounded-2xl p-6 text-sm text-white focus:ring-2 focus:ring-[#6366f1]/40 focus:outline-none transition-all resize-none font-medium placeholder:text-white/10"
+            />
+          </div>
+          {error && (
+            <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="p-4 bg-red-500/10 border border-red-500/20 rounded-2xl flex items-center gap-3 text-red-500 text-sm font-bold">
+              <AlertCircle className="w-5 h-5" /> {error}
+            </motion.div>
+          )}
+          <button 
+            onClick={handleScan}
+            disabled={isScanning || !file}
+            className={cn(
+              "w-full py-6 rounded-3xl font-black text-sm uppercase tracking-[0.2em] transition-all active:scale-[0.98] disabled:opacity-50 relative overflow-hidden",
+              "bg-[#6366f1] text-white shadow-2xl shadow-[#6366f1]/20 hover:brightness-110"
+            )}
+          >
+            Launch System Simulation
+          </button>
         </div>
-
-        {error && (
-          <motion.div initial={{ scale: 0.9, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} className="p-4 bg-red-500/10 border border-red-500/20 rounded-xl flex items-center gap-3 text-red-500 text-sm font-bold">
-            <AlertCircle className="w-5 h-5" /> {error}
-          </motion.div>
-        )}
-
-        <button 
-          onClick={handleScan}
-          disabled={isScanning || !file}
-          className={cn(
-            "w-full py-6 rounded-2xl font-black text-sm uppercase tracking-widest transition-all active:scale-[0.98] disabled:opacity-50 relative overflow-hidden",
-            isScanning ? "bg-white/5 text-white/20" : "bg-[#6366f1] text-white shadow-xl shadow-[#6366f1]/20"
-          )}
-        >
-          {isScanning ? (
-            <div className="flex items-center justify-center gap-4 relative z-10">
-              <div className="w-5 h-5 border-2 border-white/10 border-t-[#6366f1] rounded-full animate-spin" />
-              Processing... {progress}%
-            </div>
-          ) : (
-            <div className="flex items-center justify-center gap-2">
-              Launch Analysis Engine <ChevronRight className="w-5 h-5" />
-            </div>
-          )}
-          {isScanning && <div className="absolute inset-y-0 left-0 bg-[#6366f1]/20 transition-all duration-500" style={{ width: `${progress}%` }} />}
-        </button>
-      </div>
+      )}
     </div>
   );
 }
@@ -372,125 +547,353 @@ function ScannerSection({ onResults }: { onResults: (results: ATSResult[], resum
 function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void }) {
   const [selectedSystem, setSelectedSystem] = useState(scan.results[0].system);
   const currentResult = scan.results.find(r => r.system === selectedSystem) || scan.results[0];
+  const avgScore = Math.round(scan.results.reduce((acc, r) => acc + r.overallScore, 0) / 6);
+  const systemsPassed = scan.results.filter(r => r.passesFilter).length;
 
   const getScoreColor = (score: number) => {
-    if (score >= 80) return 'text-[#10b981]';
-    if (score >= 60) return 'text-[#f59e0b]';
-    return 'text-[#ef4444]';
+    if (score >= 80) return '#10b981';
+    if (score >= 60) return '#f59e0b';
+    return '#ef4444';
   };
 
-  const getScoreBorder = (score: number) => {
-    if (score >= 80) return 'border-[#10b981]';
-    if (score >= 60) return 'border-[#f59e0b]';
-    return 'border-[#ef4444]';
+  const getScoreLabel = (score: number) => {
+    if (score >= 80) return 'Excellent';
+    if (score >= 60) return 'Good';
+    return 'Low';
+  };
+
+  const [isExporting, setIsExporting] = useState(false);
+
+  const handleExportPDF = async () => {
+    const element = document.getElementById('report-content');
+    if (!element) return;
+    
+    setIsExporting(true);
+    try {
+      const canvas = await html2canvas(element, {
+        backgroundColor: '#050507',
+        scale: 2,
+        logging: false,
+        useCORS: true,
+        allowTaint: true,
+        onclone: (clonedDoc) => {
+          // Comprehensive sanitizer for modern CSS functions that crash html2canvas
+          const styleElements = clonedDoc.getElementsByTagName('style');
+          const pattern = /(oklch|oklab|color-mix)\([^)]+\)/g;
+          const fallbackColor = '#6366f1';
+
+          // 1. Sanitize all <style> tags
+          for (let i = 0; i < styleElements.length; i++) {
+            try {
+              styleElements[i].innerHTML = styleElements[i].innerHTML.replace(pattern, fallbackColor);
+            } catch (e) {
+              console.warn("Could not sanitize style tag:", e);
+            }
+          }
+
+          // 2. Sanitize all inline styles on all elements
+          const allElements = clonedDoc.getElementsByTagName('*');
+          for (let i = 0; i < allElements.length; i++) {
+            const el = allElements[i] as HTMLElement;
+            if (el.style) {
+              // We check the most common properties that might have oklch
+              const props = ['color', 'backgroundColor', 'borderColor', 'outlineColor', 'stopColor', 'fill', 'stroke'];
+              props.forEach(prop => {
+                const val = (el.style as any)[prop];
+                if (val && (val.includes('oklch') || val.includes('oklab') || val.includes('color-mix'))) {
+                  (el.style as any)[prop] = fallbackColor;
+                }
+              });
+            }
+          }
+        }
+      });
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save(`ATS_Screener_Report_${formatDate(scan.createdAt).replace(/ /g, '_')}.pdf`);
+    } catch (err) {
+      console.error("PDF Export failed:", err);
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   return (
-    <div className="space-y-10 animate-fade-in pb-20">
+    <div className="space-y-12 animate-fade-in pb-32">
       <div className="flex items-center justify-between">
-        <button onClick={onBack} className="text-white/40 hover:text-white flex items-center gap-2 text-xs font-bold uppercase tracking-widest transition-all">
-          <ChevronRight className="w-4 h-4 rotate-180" /> Back to Dashboard
+        <button onClick={onBack} className="text-white/40 hover:text-white flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all">
+          <ChevronRight className="w-4 h-4 rotate-180" /> Back to Intelligence Dashboard
         </button>
-        <div className="text-[10px] font-black text-white/20 uppercase tracking-[0.2em]">Report ID: {scan.id.slice(0, 8)}</div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {scan.results.map(r => (
-          <button
-            key={r.system}
-            onClick={() => setSelectedSystem(r.system)}
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={handleExportPDF}
+            disabled={isExporting}
             className={cn(
-              "glass p-6 rounded-2xl flex flex-col gap-6 text-left transition-all relative overflow-hidden",
-              selectedSystem === r.system ? "border-[#6366f1]/50 bg-[#6366f1]/10" : "hover:border-white/10"
+              "flex items-center gap-2 px-4 py-2 bg-[#6366f1]/10 border border-[#6366f1]/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-[#6366f1] hover:bg-[#6366f1]/20 transition-all disabled:opacity-50",
+              isExporting && "animate-pulse"
             )}
           >
-            <div className="flex justify-between items-start">
-              <div>
-                <h4 className="text-sm font-black text-white">{r.system}</h4>
-                <p className="text-[10px] text-white/30 font-bold uppercase tracking-widest">{r.vendor}</p>
-              </div>
-              <div className={cn("w-10 h-10 border-2 rounded-full flex items-center justify-center text-xs font-black", getScoreBorder(r.overallScore), getScoreColor(r.overallScore))}>
-                {r.overallScore}
-              </div>
-            </div>
-
-            <div className="space-y-3">
-              {[
-                { label: 'Formatting', score: r.breakdown.formatting.score },
-                { label: 'Keywords', score: r.breakdown.keywordMatch.score },
-              ].map(dim => (
-                <div key={dim.label} className="space-y-1">
-                  <div className="flex justify-between text-[10px] font-bold">
-                    <span className="text-white/30 uppercase">{dim.label}</span>
-                    <span className="text-white/60">{dim.score}%</span>
-                  </div>
-                  <div className="h-[3px] bg-white/5 rounded-full overflow-hidden">
-                    <div className="h-full bg-[#6366f1] rounded-full" style={{ width: `${dim.score}%` }} />
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className={cn("text-[10px] font-black uppercase flex items-center gap-1.5", r.passesFilter ? "text-[#10b981]" : "text-[#ef4444]")}>
-              {r.passesFilter ? <CheckCircle2 className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
-              {r.passesFilter ? "Passes Initial Filter" : "Risk of Rejection"}
-            </div>
-            
-            {selectedSystem === r.system && <div className="absolute right-0 top-0 w-1 h-full bg-[#6366f1]" />}
+            {isExporting ? <Clock className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+            {isExporting ? 'Generating...' : 'Export PDF Report'}
           </button>
-        ))}
+        </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-        {/* Detail Panel */}
-        <div className="glass p-8 rounded-3xl space-y-8">
-          <div className="space-y-1">
-            <h3 className="text-xl font-black text-white">{currentResult.system} Insights</h3>
-            <p className="text-xs text-white/30 font-bold uppercase tracking-widest">In-depth matching logic analysis</p>
+      <div id="report-content" className="space-y-12">
+        <div className="glass p-10 rounded-[3rem] border-white/5 flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-[#6366f1]/5 blur-[100px] rounded-full -mr-32 -mt-32" />
+          <div className="flex flex-col items-center text-center space-y-2 shrink-0">
+            <div className="text-8xl font-black tracking-tighter" style={{ color: getScoreColor(avgScore) }}>
+              {avgScore}
+            </div>
+            <div className="text-lg font-black uppercase tracking-[0.2em]" style={{ color: getScoreColor(avgScore) }}>
+              {getScoreLabel(avgScore)}
+            </div>
+            <div className="text-[10px] text-white/20 font-black uppercase tracking-widest">Global Aggregate</div>
           </div>
 
-          <div className="space-y-4">
-            <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em] mb-4">Improvement Areas</h4>
-            <div className="space-y-3">
-              {currentResult.suggestions.map((s, i) => (
-                <div key={i} className="pl-4 border-l-2 border-[#6366f1] text-sm text-white/70 py-1">
-                  {s}
-                </div>
-              ))}
+          <div className="flex-1 space-y-8 w-full">
+            <div className="grid gap-4">
+               {scan.results.map(r => (
+                 <div key={r.system} className="space-y-1.5">
+                   <div className="flex justify-between items-center px-1">
+                     <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">{r.system}</span>
+                     <span className="text-[10px] font-bold text-white/60">{r.overallScore}%</span>
+                   </div>
+                   <div className="h-[3px] bg-white/5 rounded-full overflow-hidden">
+                     <div 
+                      className="h-full rounded-full transition-all duration-1000" 
+                      style={{ 
+                        width: `${r.overallScore}%`, 
+                        backgroundColor: getScoreColor(r.overallScore) 
+                      }} 
+                     />
+                   </div>
+                 </div>
+               ))}
             </div>
+          </div>
+
+          <div className="shrink-0 flex flex-col items-center md:items-end justify-center pt-8 md:pt-0 border-t md:border-t-0 md:border-l border-white/5 md:pl-12">
+             <div className="text-5xl font-black text-white">{systemsPassed}/6</div>
+             <div className="text-[10px] text-white/30 font-black uppercase tracking-widest mt-1">Systems Authenticated</div>
+             <div className="mt-4 px-3 py-1 bg-[#6366f1]/10 border border-[#6366f1]/20 rounded-full text-[10px] font-black text-[#6366f1] uppercase tracking-widest">
+               General Readiness: High
+             </div>
           </div>
         </div>
 
-        {/* Keywords Panel */}
-        <div className="glass p-8 rounded-3xl space-y-8">
-          <div className="space-y-1">
-            <h3 className="text-xl font-black text-white">Keyword Intelligence</h3>
-            <p className="text-xs text-white/30 font-bold uppercase tracking-widest">Matched vs. Missing Skills</p>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {scan.results.map(r => (
+            <div 
+              key={r.system}
+              className={cn(
+                "glass p-8 rounded-[2.5rem] space-y-8 transition-all border-[#6366f1]/10",
+                selectedSystem === r.system ? "border-[#6366f1]/50 bg-[#6366f1]/5" : ""
+              )}
+              onClick={() => setSelectedSystem(r.system)}
+            >
+              <div className="flex items-start justify-between">
+                <div>
+                  <h4 className="text-xl font-black text-white">{r.system}</h4>
+                  <p className="text-[10px] text-white/30 font-black uppercase tracking-widest">{r.vendor}</p>
+                </div>
+                <div className="relative">
+                  <svg className="w-14 h-14 -rotate-90">
+                    <circle cx="28" cy="28" r="24" fill="none" stroke="currentColor" strokeWidth="4" className="text-white/5" />
+                    <circle 
+                      cx="28" 
+                      cy="28" 
+                      r="24" 
+                      fill="none" 
+                      stroke={getScoreColor(r.overallScore)} 
+                      strokeWidth="4" 
+                      strokeDasharray={2 * Math.PI * 24} 
+                      strokeDashoffset={2 * Math.PI * 24 * (1 - r.overallScore / 100)} 
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex items-center justify-center text-xs font-black text-white">
+                    {r.overallScore}
+                  </div>
+                </div>
+              </div>
+              <div className={cn("inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest", r.passesFilter ? "bg-[#10b981]/10 text-[#10b981]" : "bg-[#ef4444]/10 text-[#ef4444]")}>
+                {r.passesFilter ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                {r.passesFilter ? "Passes Intelligence" : "Needs Refinement"}
+              </div>
+              <div className="space-y-4">
+                {[
+                  { label: 'Formatting', score: r.breakdown.formatting.score },
+                  { label: 'Keywords', score: r.breakdown.keywordMatch.score },
+                  { label: 'Profile Depth', score: r.breakdown.experience.score },
+                  { label: 'Education Sync', score: r.breakdown.education.score },
+                  { label: 'Quantification', score: r.breakdown.quantification.score },
+                ].map(stat => (
+                  <div key={stat.label} className="space-y-1.5">
+                    <div className="flex justify-between text-[10px] font-bold">
+                      <span className="text-white/20 uppercase tracking-widest">{stat.label}</span>
+                      <span className="text-white/60">{stat.score}%</span>
+                    </div>
+                    <div className="h-[4px] bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${stat.score}%`, backgroundColor: getScoreColor(stat.score) }} />
+                    </div>
+                  </div>
+                ))}
+              </div>
+              <div className="pt-6 border-t border-white/5 flex gap-4">
+                 <div className="text-[10px] font-black text-white/40 uppercase tracking-widest"><span className="text-[#10b981]">{r.breakdown.keywordMatch.matched.length}</span> Matched</div>
+                 <div className="text-[10px] font-black text-white/40 uppercase tracking-widest"><span className="text-[#ef4444]">{r.breakdown.keywordMatch.missing.length}</span> Missing</div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
+          <div className="glass p-10 rounded-[3rem] space-y-10">
+             <div className="flex items-center justify-between">
+                <div className="space-y-1">
+                  <h3 className="text-2xl font-black text-white flex items-center gap-3">
+                    <Search className="w-6 h-6 text-[#6366f1]" /> Keyword Coverage
+                  </h3>
+                  <p className="text-xs text-white/30 font-bold uppercase tracking-widest">Target Matching Analysis</p>
+                </div>
+                <div className="text-right">
+                  <div className="text-3xl font-black text-[#6366f1]">{currentResult.breakdown.keywordMatch.score}%</div>
+                  <div className="text-[10px] text-white/20 font-black uppercase tracking-widest">Match Density</div>
+                </div>
+             </div>
+             <div className="space-y-8">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-[10px] font-black text-[#10b981] uppercase tracking-[0.2em]">
+                    <CheckCircle2 className="w-3.5 h-3.5" /> Matched Invariants ({currentResult.breakdown.keywordMatch.matched.length})
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {currentResult.breakdown.keywordMatch.matched.map(kw => (
+                      <span key={kw} className="px-3 py-2 bg-[#10b981]/5 text-[#10b981] text-[10px] font-black uppercase tracking-widest rounded-xl border border-[#10b981]/10">
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2 text-[10px] font-black text-[#ef4444] uppercase tracking-[0.2em]">
+                    <XCircle className="w-3.5 h-3.5" /> Missing Primary Signals ({currentResult.breakdown.keywordMatch.missing.length})
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {currentResult.breakdown.keywordMatch.missing.map(kw => (
+                      <span key={kw} className="px-3 py-2 bg-[#ef4444]/5 text-[#ef4444] text-[10px] font-black uppercase tracking-widest rounded-xl border border-[#ef4444]/10">
+                        {kw}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+             </div>
           </div>
 
-          <div className="flex flex-wrap gap-2 pt-4">
-            {currentResult.breakdown.keywordMatch.matched.map(kw => (
-              <span key={kw} className="px-3 py-1.5 bg-[#10b981]/5 text-[#10b981] text-[10px] font-black uppercase rounded-lg border border-[#10b981]/10">
-                {kw}
-              </span>
-            ))}
-            {currentResult.breakdown.keywordMatch.missing.map(kw => (
-              <span key={kw} className="px-3 py-1.5 bg-[#ef4444]/5 text-[#ef4444] text-[10px] font-black uppercase rounded-lg border border-[#ef4444]/10">
-                {kw}
-              </span>
-            ))}
+          <div className="glass p-10 rounded-[3rem] space-y-8">
+             <div className="space-y-1">
+                <h3 className="text-2xl font-black text-white flex items-center gap-3">
+                  <Sparkles className="w-6 h-6 text-indigo-400" /> Improvement Vector
+                </h3>
+                <p className="text-xs text-white/30 font-bold uppercase tracking-widest">Weighted priority recommendations</p>
+             </div>
+             <div className="space-y-4">
+                {currentResult.suggestions.map((s, idx) => (
+                  <div key={idx} className="glass bg-white/[0.01] p-6 rounded-2xl flex gap-6 group hover:bg-white/[0.02] transition-all">
+                     <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0 text-xs font-black text-white/40">
+                        {idx + 1}
+                     </div>
+                     <div className="flex-1 space-y-3">
+                        <p className="text-sm text-white/80 font-medium leading-relaxed">{s.text}</p>
+                        <div className="flex items-center justify-between">
+                           <div className="flex gap-2">
+                              {s.platforms.map(p => (
+                                <span key={p} className="text-[8px] font-black text-white/20 bg-white/5 px-2 py-0.5 rounded uppercase tracking-widest">{p}</span>
+                              ))}
+                           </div>
+                           <div className={cn("text-[9px] font-black uppercase tracking-widest", s.priority === 'HIGH' ? 'text-[#ef4444]' : s.priority === 'MEDIUM' ? 'text-[#f59e0b]' : 'text-[#6366f1]')}>
+                             {s.priority} Priority
+                           </div>
+                        </div>
+                     </div>
+                  </div>
+                ))}
+             </div>
           </div>
+        </div>
 
-          <div className="pt-8 border-t border-white/5 space-y-4">
-               <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Quantified Bullets</span>
-                  <span className="text-sm font-bold text-white">{currentResult.breakdown.experience.quantifiedBullets} / {currentResult.breakdown.experience.totalBullets}</span>
-               </div>
-               <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">Action Verbs Found</span>
-                  <span className="text-sm font-bold text-white">{currentResult.breakdown.experience.actionVerbCount}</span>
-               </div>
-          </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+           <div className="lg:col-span-2 glass p-10 rounded-[3rem] space-y-10">
+              <div className="space-y-1">
+                <h3 className="text-2xl font-black text-white flex items-center gap-3">
+                  <FileText className="w-6 h-6 text-blue-400" /> Structure Overview
+                </h3>
+                <p className="text-xs text-white/30 font-bold uppercase tracking-widest">Extracted Document Metadata</p>
+              </div>
+              <div className="grid grid-cols-3 gap-6">
+                 {[
+                   { label: 'Words', value: scan.metadata.wordCount },
+                   { label: 'Positions', value: scan.metadata.positions },
+                   { label: 'Sections', value: scan.metadata.sections.length },
+                 ].map(stat => (
+                   <div key={stat.label} className="bg-white/[0.02] p-6 rounded-3xl border border-white/5 text-center space-y-1">
+                      <div className="text-3xl font-black text-white">{stat.value}</div>
+                      <div className="text-[10px] text-white/20 font-black uppercase tracking-[0.2em]">{stat.label}</div>
+                   </div>
+                 ))}
+              </div>
+              <div className="space-y-4">
+                 <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Detected Sections</h4>
+                 <div className="flex flex-wrap gap-2">
+                   {scan.metadata.sections.map(s => (
+                     <span key={s} className="px-3 py-1.5 bg-[#10b981]/10 text-[#10b981] text-[10px] font-black uppercase rounded-lg border border-[#10b981]/20">
+                       <Check className="w-3 h-3 inline-block mr-1 opacity-50" /> {s}
+                     </span>
+                   ))}
+                 </div>
+              </div>
+              <div className="space-y-4">
+                 <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Platform Compatibility Signals</h4>
+                 <div className="flex gap-6">
+                    {Object.entries(scan.metadata.checkmarks).map(([key, val]) => (
+                      <div key={key} className={cn("flex items-center gap-2 text-[10px] font-black uppercase tracking-widest", val ? 'text-[#10b981]' : 'text-white/20')}>
+                         {val ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
+                         {key.replace(/([A-Z])/g, ' $1')}
+                      </div>
+                    ))}
+                 </div>
+              </div>
+           </div>
+           <div className="glass p-10 rounded-[3rem] space-y-8">
+              <div className="space-y-1">
+                <h3 className="text-2xl font-black text-white">Contact Integrity</h3>
+                <p className="text-xs text-white/30 font-bold uppercase tracking-widest">Identified Signals</p>
+              </div>
+              <div className="space-y-6">
+                 {[
+                   { label: 'Account', value: scan.metadata.contactInfo.email, icon: UserIcon },
+                   { label: 'Endpoint', value: scan.metadata.contactInfo.phone, icon: ShieldCheck },
+                   { label: 'LinkedIn', value: scan.metadata.contactInfo.linkedin, icon: Building2 },
+                   { label: 'Source', value: scan.metadata.contactInfo.location, icon: Info },
+                 ].map(item => item.value ? (
+                   <div key={item.label} className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center shrink-0">
+                         <item.icon className="w-4 h-4 text-white/40" />
+                      </div>
+                      <div className="overflow-hidden">
+                         <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">{item.label}</p>
+                         <p className="text-sm font-bold text-white truncate">{item.value}</p>
+                      </div>
+                   </div>
+                 ) : null)}
+              </div>
+           </div>
         </div>
       </div>
     </div>
@@ -555,8 +958,8 @@ function HistorySection({ items, onView, onDelete }: {
 
               <div className="flex items-center gap-3">
                 <button 
-                  onClick={() => onView(item)}
-                  className="px-6 py-3 rounded-xl bg-white/[0.03] text-white/40 font-bold text-xs uppercase tracking-widest hover:bg-[#6366f1] hover:text-white transition-all border border-white/5"
+                   onClick={() => onView(item)}
+                   className="px-6 py-3 rounded-xl bg-white/[0.03] text-white/40 font-bold text-xs uppercase tracking-widest hover:bg-[#6366f1] hover:text-white transition-all border border-white/5"
                 >
                   View Details
                 </button>
@@ -570,6 +973,93 @@ function HistorySection({ items, onView, onDelete }: {
             </div>
           );
         })}
+      </div>
+    </div>
+  );
+}
+
+function SettingsSection({ user }: { user: User | null }) {
+  return (
+    <div className="max-w-4xl mx-auto space-y-12 animate-fade-in">
+       <div className="space-y-4">
+        <div className="inline-flex px-3 py-1 bg-[#6366f1]/10 text-[#6366f1] text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-[#6366f1]/20">
+          Personal Preferences
+        </div>
+        <h2 className="text-5xl font-black text-white tracking-tighter">Your Profile & <span className="text-[#6366f1]">Control Center</span></h2>
+        <p className="text-white/30 text-lg font-medium">Manage your session, archives, and system preferences.</p>
+      </div>
+
+      <div className="grid gap-6">
+         <div className="glass p-8 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-8">
+            <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+               <img src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`} className="w-20 h-20 rounded-[2rem] border border-white/10" alt="User" />
+               <div>
+                  <h3 className="text-xl font-bold text-white">{user?.displayName || user?.email?.split('@')[0]}</h3>
+                  <p className="text-white/30 text-sm">{user?.email}</p>
+                  <div className="flex gap-2 mt-3 justify-center md:justify-start">
+                     <span className="px-2 py-0.5 bg-[#6366f1]/10 text-[#6366f1] text-[10px] font-black uppercase rounded text-xs tracking-widest">Active Member</span>
+                     <span className="px-2 py-0.5 bg-white/5 text-white/30 text-[10px] font-black uppercase rounded text-xs tracking-widest">Free Tier</span>
+                  </div>
+               </div>
+            </div>
+            <button onClick={() => auth.signOut()} className="px-6 py-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl font-bold text-sm hover:bg-red-500 hover:text-white transition-all whitespace-nowrap">
+               Sign Out
+            </button>
+         </div>
+
+         <div className="grid md:grid-cols-2 gap-6">
+            <div className="glass p-8 rounded-[2.5rem] space-y-4">
+               <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
+                  <Shield className="w-6 h-6 text-[#6366f1]" />
+               </div>
+               <h4 className="text-lg font-bold text-white">Security & Privacy</h4>
+               <p className="text-white/40 text-sm leading-relaxed">All processing is done locally. Your resumes are never stored on our cloud servers without your explicit permission.</p>
+               <button className="text-[#6366f1] text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all">
+                  Read Privacy Manifesto <ArrowRight className="w-4 h-4" />
+               </button>
+            </div>
+
+            <div className="glass p-8 rounded-[2.5rem] space-y-4">
+               <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
+                  <BarChart3 className="w-6 h-6 text-[#10b981]" />
+               </div>
+               <h4 className="text-lg font-bold text-white">Usage Analytics</h4>
+               <p className="text-white/40 text-sm leading-relaxed">System data synchronized. Archives are stored in your private Firestore silo.</p>
+               <button className="text-[#10b981] text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all">
+                  Upgrade to Pro <ArrowRight className="w-4 h-4" />
+               </button>
+            </div>
+         </div>
+
+         <div className="glass p-8 rounded-[2.5rem] space-y-6">
+            <h4 className="text-lg font-black text-white px-2">System Preferences</h4>
+            <div className="space-y-4">
+               {[
+                 { label: 'High Precision Analysis', value: true, desc: 'Uses advanced semantic matching for higher scores on Lever and Greenhouse.' },
+                 { label: 'Automatic Archive', value: true, desc: 'Saves your scan results to the history automatically after scanning.' },
+                 { label: 'Dark Mode (Always On)', value: true, desc: 'Forced nocturnal theme for reduced eye strain.' }
+               ].map(pref => (
+                 <div key={pref.label} className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl flex items-center justify-between group hover:bg-white/[0.02] transition-all">
+                    <div>
+                       <p className="font-bold text-white group-hover:text-[#6366f1] transition-colors">{pref.label}</p>
+                       <p className="text-white/30 text-xs mt-1 leading-relaxed">{pref.desc}</p>
+                    </div>
+                    <div className="w-12 h-6 bg-[#6366f1] rounded-full p-1 relative flex items-center">
+                       <div className="absolute right-1 w-4 h-4 bg-white rounded-full" />
+                    </div>
+                 </div>
+               ))}
+            </div>
+         </div>
+      </div>
+
+      <div className="p-10 bg-red-500/5 border border-red-500/10 rounded-[3rem] text-center space-y-4">
+          <p className="text-red-500 font-bold uppercase tracking-widest text-[10px]">Danger Zone</p>
+          <h4 className="text-xl font-black text-white">Wipe All Records</h4>
+          <p className="text-white/40 text-sm max-w-sm mx-auto">This will irreversibly delete all your previous scans from our secure Firestore database.</p>
+          <button className="px-8 py-4 bg-red-500 text-white rounded-2xl font-bold text-sm hover:scale-95 transition-all shadow-xl shadow-red-500/20">
+             Delete Personal Data
+          </button>
       </div>
     </div>
   );

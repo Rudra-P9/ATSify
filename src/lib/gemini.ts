@@ -1,8 +1,8 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { runDeterministicEngine } from "./engine";
 
-const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
-
+const apiKey = process.env.GEMINI_API_KEY;
+const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
 export interface ResumeMetadata {
   wordCount: number;
   sections: string[];
@@ -130,8 +130,8 @@ const ATS_SCHEMA = {
 };
 
 export async function analyzeResume(resumeText: string, jobDescription?: string): Promise<AnalysisResponse> {
-  // Attempt Gemini analysis only when an API key is configured
-  if (process.env.GEMINI_API_KEY) {
+  // Attempt Gemini analysis only when an API key is configured and ai is valid
+  if (apiKey && ai) {
     try {
       const prompt = `
     Analyze the following resume text and provide a detailed ATS simulation report based on our "Big Picture" scoring engine.

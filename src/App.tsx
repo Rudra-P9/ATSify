@@ -54,8 +54,7 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import jsPDF from 'jspdf';
-import html2canvas from 'html2canvas';
-
+import { toPng } from 'html-to-image';
 // --- Types ---
 interface SavedScan {
   id: string;
@@ -545,21 +544,20 @@ function ScannerSection({ onResults }: { onResults: (results: ATSResult[], resum
 }
 
 function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void }) {
-  const [selectedSystem, setSelectedSystem] = useState(scan.results[0].system);
-  const currentResult = scan.results.find(r => r.system === selectedSystem) || scan.results[0];
   const avgScore = Math.round(scan.results.reduce((acc, r) => acc + r.overallScore, 0) / 6);
   const systemsPassed = scan.results.filter(r => r.passesFilter).length;
-
+  const weakestResult = scan.results.slice().sort((a,b) => a.overallScore - b.overallScore)[0] || scan.results[0];
+  
   const getScoreColor = (score: number) => {
     if (score >= 80) return '#10b981';
-    if (score >= 60) return '#f59e0b';
+    if (score >= 60) return '#eab308';
     return '#ef4444';
   };
 
-  const getScoreLabel = (score: number) => {
-    if (score >= 80) return 'Excellent';
-    if (score >= 60) return 'Good';
-    return 'Low';
+  const getStatusText = (score: number) => {
+    if (score >= 80) return 'LIKELY TO PASS';
+    if (score >= 60) return 'MAY BE FILTERED';
+    return 'NEEDS WORK';
   };
 
   const [isExporting, setIsExporting] = useState(false);
@@ -570,45 +568,15 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
     
     setIsExporting(true);
     try {
-      const canvas = await html2canvas(element, {
+      const imgData = await toPng(element, {
         backgroundColor: '#050507',
-        scale: 2,
-        logging: false,
-        useCORS: true,
-        allowTaint: true,
-        onclone: (clonedDoc) => {
-          // Comprehensive sanitizer for modern CSS functions that crash html2canvas
-          const styleElements = clonedDoc.getElementsByTagName('style');
-          const pattern = /(oklch|oklab|color-mix)\([^)]+\)/g;
-          const fallbackColor = '#6366f1';
-
-          // 1. Sanitize all <style> tags
-          for (let i = 0; i < styleElements.length; i++) {
-            try {
-              styleElements[i].innerHTML = styleElements[i].innerHTML.replace(pattern, fallbackColor);
-            } catch (e) {
-              console.warn("Could not sanitize style tag:", e);
-            }
-          }
-
-          // 2. Sanitize all inline styles on all elements
-          const allElements = clonedDoc.getElementsByTagName('*');
-          for (let i = 0; i < allElements.length; i++) {
-            const el = allElements[i] as HTMLElement;
-            if (el.style) {
-              // We check the most common properties that might have oklch
-              const props = ['color', 'backgroundColor', 'borderColor', 'outlineColor', 'stopColor', 'fill', 'stroke'];
-              props.forEach(prop => {
-                const val = (el.style as any)[prop];
-                if (val && (val.includes('oklch') || val.includes('oklab') || val.includes('color-mix'))) {
-                  (el.style as any)[prop] = fallbackColor;
-                }
-              });
-            }
-          }
+        pixelRatio: 2,
+        style: {
+          transform: 'scale(1)',
+          transformOrigin: 'top left'
         }
       });
-      const imgData = canvas.toDataURL('image/png');
+
       const pdf = new jsPDF('p', 'mm', 'a4');
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
@@ -624,277 +592,270 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
   };
 
   return (
-    <div className="space-y-12 animate-fade-in pb-32">
+    <div className="space-y-8 animate-fade-in pb-32">
       <div className="flex items-center justify-between">
         <button onClick={onBack} className="text-white/40 hover:text-white flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all">
           <ChevronRight className="w-4 h-4 rotate-180" /> Back to Intelligence Dashboard
         </button>
-        <div className="flex items-center gap-3">
-          <button 
-            onClick={handleExportPDF}
-            disabled={isExporting}
-            className={cn(
-              "flex items-center gap-2 px-4 py-2 bg-[#6366f1]/10 border border-[#6366f1]/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-[#6366f1] hover:bg-[#6366f1]/20 transition-all disabled:opacity-50",
-              isExporting && "animate-pulse"
-            )}
-          >
-            {isExporting ? <Clock className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
-            {isExporting ? 'Generating...' : 'Export PDF Report'}
-          </button>
-        </div>
+        <button 
+          onClick={handleExportPDF}
+          disabled={isExporting}
+          className={cn(
+            "flex items-center gap-2 px-4 py-2 bg-[#6366f1]/10 border border-[#6366f1]/20 rounded-xl text-[10px] font-black uppercase tracking-widest text-[#6366f1] hover:bg-[#6366f1]/20 transition-all disabled:opacity-50",
+            isExporting && "animate-pulse"
+          )}
+        >
+          {isExporting ? <Clock className="w-3.5 h-3.5 animate-spin" /> : <Download className="w-3.5 h-3.5" />}
+          {isExporting ? 'Generating...' : 'Export PDF Report'}
+        </button>
       </div>
 
-      <div id="report-content" className="space-y-12">
-        <div className="glass p-10 rounded-[3rem] border-white/5 flex flex-col md:flex-row items-center gap-12 relative overflow-hidden">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-[#6366f1]/5 blur-[100px] rounded-full -mr-32 -mt-32" />
-          <div className="flex flex-col items-center text-center space-y-2 shrink-0">
-            <div className="text-8xl font-black tracking-tighter" style={{ color: getScoreColor(avgScore) }}>
-              {avgScore}
-            </div>
-            <div className="text-lg font-black uppercase tracking-[0.2em]" style={{ color: getScoreColor(avgScore) }}>
-              {getScoreLabel(avgScore)}
-            </div>
-            <div className="text-[10px] text-white/20 font-black uppercase tracking-widest">Global Aggregate</div>
-          </div>
-
-          <div className="flex-1 space-y-8 w-full">
-            <div className="grid gap-4">
-               {scan.results.map(r => (
-                 <div key={r.system} className="space-y-1.5">
-                   <div className="flex justify-between items-center px-1">
-                     <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">{r.system}</span>
-                     <span className="text-[10px] font-bold text-white/60">{r.overallScore}%</span>
-                   </div>
-                   <div className="h-[3px] bg-white/5 rounded-full overflow-hidden">
-                     <div 
-                      className="h-full rounded-full transition-all duration-1000" 
-                      style={{ 
-                        width: `${r.overallScore}%`, 
-                        backgroundColor: getScoreColor(r.overallScore) 
-                      }} 
-                     />
-                   </div>
+      <div id="report-content" className="space-y-8">
+         {/* 1. TOP SUMMARY HEADER */}
+         <div className="w-full bg-gradient-to-br from-[#0c0c11] to-[#12121a] rounded-[2rem] border border-white/5 p-8 flex flex-col lg:flex-row items-center justify-between gap-10 shadow-2xl relative overflow-hidden">
+            <div className="flex items-center gap-6 relative z-10">
+               <div className="text-8xl font-black leading-none" style={{ color: getScoreColor(avgScore) }}>{avgScore}</div>
+               <div className="space-y-1">
+                 <div className="text-xl font-bold tracking-widest uppercase" style={{ color: getScoreColor(avgScore) }}>
+                    {avgScore >= 80 ? 'Excellent' : avgScore >= 60 ? 'Good' : 'Weak'}
                  </div>
+                 <div className="text-[10px] text-white/40 font-black tracking-widest uppercase">AVERAGE SCORE</div>
+               </div>
+            </div>
+            
+            <div className="flex-1 w-full bg-white/[0.02] p-4 rounded-2xl flex items-center justify-between gap-2 border border-white/[0.05]">
+               {scan.results.map(r => (
+                  <div key={r.system} className="flex-1 flex flex-col gap-1 items-center">
+                    <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{r.system.substring(0,6)}</span>
+                    <div className="w-full h-[6px] bg-white/10 rounded-full overflow-hidden flex items-end">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${r.overallScore}%`, backgroundColor: getScoreColor(r.overallScore) }} />
+                    </div>
+                  </div>
                ))}
             </div>
-          </div>
 
-          <div className="shrink-0 flex flex-col items-center md:items-end justify-center pt-8 md:pt-0 border-t md:border-t-0 md:border-l border-white/5 md:pl-12">
-             <div className="text-5xl font-black text-white">{systemsPassed}/6</div>
-             <div className="text-[10px] text-white/30 font-black uppercase tracking-widest mt-1">Systems Authenticated</div>
-             <div className="mt-4 px-3 py-1 bg-[#6366f1]/10 border border-[#6366f1]/20 rounded-full text-[10px] font-black text-[#6366f1] uppercase tracking-widest">
-               General Readiness: High
-             </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {scan.results.map(r => (
-            <div 
-              key={r.system}
-              className={cn(
-                "glass p-8 rounded-[2.5rem] space-y-8 transition-all border-[#6366f1]/10",
-                selectedSystem === r.system ? "border-[#6366f1]/50 bg-[#6366f1]/5" : ""
-              )}
-              onClick={() => setSelectedSystem(r.system)}
-            >
-              <div className="flex items-start justify-between">
-                <div>
-                  <h4 className="text-xl font-black text-white">{r.system}</h4>
-                  <p className="text-[10px] text-white/30 font-black uppercase tracking-widest">{r.vendor}</p>
-                </div>
-                <div className="relative">
-                  <svg className="w-14 h-14 -rotate-90">
-                    <circle cx="28" cy="28" r="24" fill="none" stroke="currentColor" strokeWidth="4" className="text-white/5" />
-                    <circle 
-                      cx="28" 
-                      cy="28" 
-                      r="24" 
-                      fill="none" 
-                      stroke={getScoreColor(r.overallScore)} 
-                      strokeWidth="4" 
-                      strokeDasharray={2 * Math.PI * 24} 
-                      strokeDashoffset={2 * Math.PI * 24 * (1 - r.overallScore / 100)} 
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  <div className="absolute inset-0 flex items-center justify-center text-xs font-black text-white">
-                    {r.overallScore}
-                  </div>
-                </div>
-              </div>
-              <div className={cn("inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest", r.passesFilter ? "bg-[#10b981]/10 text-[#10b981]" : "bg-[#ef4444]/10 text-[#ef4444]")}>
-                {r.passesFilter ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                {r.passesFilter ? "Passes Intelligence" : "Needs Refinement"}
-              </div>
-              <div className="space-y-4">
-                {[
-                  { label: 'Formatting', score: r.breakdown.formatting.score },
-                  { label: 'Keywords', score: r.breakdown.keywordMatch.score },
-                  { label: 'Profile Depth', score: r.breakdown.experience.score },
-                  { label: 'Education Sync', score: r.breakdown.education.score },
-                  { label: 'Quantification', score: r.breakdown.quantification.score },
-                ].map(stat => (
-                  <div key={stat.label} className="space-y-1.5">
-                    <div className="flex justify-between text-[10px] font-bold">
-                      <span className="text-white/20 uppercase tracking-widest">{stat.label}</span>
-                      <span className="text-white/60">{stat.score}%</span>
-                    </div>
-                    <div className="h-[4px] bg-white/5 rounded-full overflow-hidden">
-                      <div className="h-full rounded-full" style={{ width: `${stat.score}%`, backgroundColor: getScoreColor(stat.score) }} />
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="pt-6 border-t border-white/5 flex gap-4">
-                 <div className="text-[10px] font-black text-white/40 uppercase tracking-widest"><span className="text-[#10b981]">{r.breakdown.keywordMatch.matched.length}</span> Matched</div>
-                 <div className="text-[10px] font-black text-white/40 uppercase tracking-widest"><span className="text-[#ef4444]">{r.breakdown.keywordMatch.missing.length}</span> Missing</div>
-              </div>
+            <div className="flex flex-col items-end gap-3 relative z-10 shrink-0">
+               <div className="text-xl font-black text-white px-2">{systemsPassed}/6 Systems Passed</div>
+               <div className="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white uppercase tracking-widest">
+                  [ General Readiness ]
+               </div>
             </div>
-          ))}
-        </div>
+         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-10">
-          <div className="glass p-10 rounded-[3rem] space-y-10">
-             <div className="flex items-center justify-between">
-                <div className="space-y-1">
-                  <h3 className="text-2xl font-black text-white flex items-center gap-3">
-                    <Search className="w-6 h-6 text-[#6366f1]" /> Keyword Coverage
-                  </h3>
-                  <p className="text-xs text-white/30 font-bold uppercase tracking-widest">Target Matching Analysis</p>
+         {/* 2. PLATFORM CARDS GRID */}
+         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+           {scan.results.map(r => (
+             <div key={r.system} className="glass bg-[#08080b] p-6 rounded-[2rem] border border-white/5 hover:border-[#6366f1]/20 transition-all flex flex-col gap-6">
+                <div className="flex justify-between items-start">
+                   <div>
+                     <h4 className="text-xl font-black text-white">{r.system}</h4>
+                     <p className="text-[9px] text-white/30 font-black uppercase tracking-widest">{r.vendor} INC.</p>
+                   </div>
+                   <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-black border-2 border-white/5 relative">
+                      <span style={{ color: getScoreColor(r.overallScore) }}>{r.overallScore}</span>
+                      <svg className="absolute inset-0 w-full h-full -rotate-90">
+                        <circle cx="22" cy="22" r="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/5" />
+                        <circle cx="22" cy="22" r="20" fill="none" stroke={getScoreColor(r.overallScore)} strokeWidth="2" strokeDasharray={125} strokeDashoffset={125 * (1 - r.overallScore/100)} strokeLinecap="round" />
+                      </svg>
+                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="text-3xl font-black text-[#6366f1]">{currentResult.breakdown.keywordMatch.score}%</div>
-                  <div className="text-[10px] text-white/20 font-black uppercase tracking-widest">Match Density</div>
+                
+                <div className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg self-start border", 
+                  r.overallScore >= 80 ? "bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20" : 
+                  r.overallScore >= 60 ? "bg-[#eab308]/10 text-[#eab308] border-[#eab308]/20" : 
+                  "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20"
+                )}>
+                   {getStatusText(r.overallScore)}
                 </div>
-             </div>
-             <div className="space-y-8">
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-[10px] font-black text-[#10b981] uppercase tracking-[0.2em]">
-                    <CheckCircle2 className="w-3.5 h-3.5" /> Matched Invariants ({currentResult.breakdown.keywordMatch.matched.length})
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {currentResult.breakdown.keywordMatch.matched.map(kw => (
-                      <span key={kw} className="px-3 py-2 bg-[#10b981]/5 text-[#10b981] text-[10px] font-black uppercase tracking-widest rounded-xl border border-[#10b981]/10">
-                        {kw}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="flex items-center gap-2 text-[10px] font-black text-[#ef4444] uppercase tracking-[0.2em]">
-                    <XCircle className="w-3.5 h-3.5" /> Missing Primary Signals ({currentResult.breakdown.keywordMatch.missing.length})
-                  </div>
-                  <div className="flex flex-wrap gap-2">
-                    {currentResult.breakdown.keywordMatch.missing.map(kw => (
-                      <span key={kw} className="px-3 py-2 bg-[#ef4444]/5 text-[#ef4444] text-[10px] font-black uppercase tracking-widest rounded-xl border border-[#ef4444]/10">
-                        {kw}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-             </div>
-          </div>
 
-          <div className="glass p-10 rounded-[3rem] space-y-8">
-             <div className="space-y-1">
-                <h3 className="text-2xl font-black text-white flex items-center gap-3">
-                  <Sparkles className="w-6 h-6 text-indigo-400" /> Improvement Vector
-                </h3>
-                <p className="text-xs text-white/30 font-bold uppercase tracking-widest">Weighted priority recommendations</p>
-             </div>
-             <div className="space-y-4">
-                {currentResult.suggestions.map((s, idx) => (
-                  <div key={idx} className="glass bg-white/[0.01] p-6 rounded-2xl flex gap-6 group hover:bg-white/[0.02] transition-all">
-                     <div className="w-8 h-8 rounded-full bg-white/5 flex items-center justify-center shrink-0 text-xs font-black text-white/40">
-                        {idx + 1}
-                     </div>
-                     <div className="flex-1 space-y-3">
-                        <p className="text-sm text-white/80 font-medium leading-relaxed">{s.text}</p>
-                        <div className="flex items-center justify-between">
-                           <div className="flex gap-2">
-                              {s.platforms.map(p => (
-                                <span key={p} className="text-[8px] font-black text-white/20 bg-white/5 px-2 py-0.5 rounded uppercase tracking-widest">{p}</span>
-                              ))}
-                           </div>
-                           <div className={cn("text-[9px] font-black uppercase tracking-widest", s.priority === 'HIGH' ? 'text-[#ef4444]' : s.priority === 'MEDIUM' ? 'text-[#f59e0b]' : 'text-[#6366f1]')}>
-                             {s.priority} Priority
-                           </div>
+                <div className="space-y-3">
+                   {[
+                     { l: 'Formatting', s: r.breakdown.formatting.score },
+                     { l: 'Keywords', s: r.breakdown.keywordMatch.score },
+                     { l: 'Sections', s: r.breakdown.sections.score },
+                     { l: 'Experience', s: r.breakdown.experience.score },
+                     { l: 'Education', s: r.breakdown.education.score }
+                   ].map(bar => (
+                     <div key={bar.l} className="flex items-center gap-3">
+                        <span className="text-[10px] font-bold text-white/40 uppercase w-20">{bar.l}</span>
+                        <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                           <div className="h-full rounded-full" style={{ width: `${bar.s}%`, backgroundColor: getScoreColor(bar.s) }} />
                         </div>
+                        <span className="text-[10px] font-black text-white/80 w-6 text-right">{bar.s}</span>
                      </div>
-                  </div>
-                ))}
-             </div>
-          </div>
-        </div>
+                   ))}
+                </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-           <div className="lg:col-span-2 glass p-10 rounded-[3rem] space-y-10">
-              <div className="space-y-1">
-                <h3 className="text-2xl font-black text-white flex items-center gap-3">
-                  <FileText className="w-6 h-6 text-blue-400" /> Structure Overview
-                </h3>
-                <p className="text-xs text-white/30 font-bold uppercase tracking-widest">Extracted Document Metadata</p>
-              </div>
-              <div className="grid grid-cols-3 gap-6">
+                <div className="pt-4 border-t border-white/5 flex items-center justify-between mt-auto">
+                   <div className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                     <span className="text-[#10b981]">{r.breakdown.keywordMatch.matched.length}</span> MATCHED
+                   </div>
+                   <div className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                     <span className="text-[#ef4444]">{r.breakdown.keywordMatch.missing.length}</span> MISSING
+                   </div>
+                </div>
+             </div>
+           ))}
+         </div>
+
+         {/* 3 & 4. SIDE BY SIDE PANELS */}
+         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            
+            {/* 3. PRIORITY FOCUS AREAS (LEFT) */}
+            <div className="lg:col-span-5 glass p-8 rounded-[2.5rem] border-white/5 space-y-6 flex flex-col">
+               <div className="space-y-1">
+                 <h3 className="text-xl font-black text-white flex items-center gap-2">
+                   <AlertCircle className="w-5 h-5 text-[#ef4444]" /> Priority Focus Areas
+                 </h3>
+                 <div className="text-[10px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2">
+                   Filtered out by: <span className="bg-[#ef4444]/20 text-[#ef4444] px-2 py-0.5 rounded border border-[#ef4444]/30">{weakestResult.system}</span>
+                 </div>
+               </div>
+
+               <div className="space-y-4 flex-1">
                  {[
-                   { label: 'Words', value: scan.metadata.wordCount },
-                   { label: 'Positions', value: scan.metadata.positions },
-                   { label: 'Sections', value: scan.metadata.sections.length },
-                 ].map(stat => (
-                   <div key={stat.label} className="bg-white/[0.02] p-6 rounded-3xl border border-white/5 text-center space-y-1">
-                      <div className="text-3xl font-black text-white">{stat.value}</div>
-                      <div className="text-[10px] text-white/20 font-black uppercase tracking-[0.2em]">{stat.label}</div>
+                   { t: 'Keyword Coverage', d: `Missing: ${weakestResult.breakdown.keywordMatch.missing.slice(0, 3).join(', ') || 'N/A'}`, s: weakestResult.breakdown.keywordMatch.score, b: 60 },
+                   { t: 'Experience Quality', d: `Action verbs: ${weakestResult.breakdown.experience.actionVerbCount} / Quantified: ${weakestResult.breakdown.experience.quantifiedBullets}`, s: weakestResult.breakdown.experience.score, b: 70 },
+                   { t: 'Formatting & Parsing', d: `Issues: ${weakestResult.breakdown.formatting.issues[0] || 'Clean'}`, s: weakestResult.breakdown.formatting.score, b: 80 },
+                   { t: 'Section Structure', d: `Missing: ${weakestResult.breakdown.sections.missing.join(', ') || 'None'}`, s: weakestResult.breakdown.sections.score, b: 100 },
+                   { t: 'Education', d: `Check: ${weakestResult.breakdown.education.notes[0] || 'Valid'}`, s: weakestResult.breakdown.education.score, b: 50 },
+                 ].map((focus, idx) => (
+                   <div key={focus.t} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl flex items-center gap-4 group hover:bg-white/[0.05] transition-all">
+                      <div className="w-6 h-6 rounded-full bg-white/10 text-white/50 flex items-center justify-center text-[10px] font-black shrink-0">{idx + 1}</div>
+                      <div className="flex-1 overflow-hidden space-y-2">
+                        <div className="flex justify-between text-xs font-bold text-white">
+                           {focus.t} <span className="text-white/60">{focus.s}</span>
+                        </div>
+                        <p className="text-[10px] text-white/40 truncate uppercase tracking-widest font-bold">{focus.d}</p>
+                        <div className="w-full h-1 bg-white/5 rounded-full relative overflow-hidden">
+                           <div className="h-full rounded-full transition-all" style={{ width: `${focus.s}%`, backgroundColor: getScoreColor(focus.s) }} />
+                           <div className="absolute top-0 bottom-0 w-0.5 bg-white/80" style={{ left: `${focus.b}%` }} title={`${weakestResult.system} baseline: ${focus.b}`} />
+                        </div>
+                      </div>
                    </div>
                  ))}
-              </div>
-              <div className="space-y-4">
-                 <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Detected Sections</h4>
+               </div>
+            </div>
+
+            {/* 4. RESUME OVERVIEW (RIGHT) */}
+            <div className="lg:col-span-7 glass p-8 rounded-[2.5rem] border-white/5 space-y-8 flex flex-col">
+               <h3 className="text-xl font-black text-white flex items-center gap-2">
+                 <FileText className="w-5 h-5 text-[#6366f1]" /> Resume Overview
+               </h3>
+               
+               <div className="grid grid-cols-3 gap-3">
+                  {[
+                    { l: 'Words', v: scan.metadata.wordCount },
+                    { l: 'Page', v: 1 },
+                    { l: 'Sections', v: scan.metadata.sections.length },
+                    { l: 'Skills', v: scan.metadata.skills.length },
+                    { l: 'Positions', v: scan.metadata.positions },
+                    { l: 'Education', v: scan.metadata.education.length }
+                  ].map(stat => (
+                    <div key={stat.l} className="bg-white/[0.02] border border-white/5 p-3 rounded-2xl text-center flex items-center justify-center gap-2">
+                       <span className="text-xl font-black text-white">{stat.v}</span>
+                       <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">{stat.l}</span>
+                    </div>
+                  ))}
+               </div>
+
+               <div className="space-y-3">
+                  <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest">Detected Sections</h4>
+                  <div className="flex flex-wrap gap-2">
+                    {scan.metadata.sections.map(s => (
+                       <span key={s} className="px-3 py-1 bg-[#10b981]/10 text-[#10b981] text-[10px] font-black uppercase tracking-widest rounded-full border border-[#10b981]/20">
+                          {s}
+                       </span>
+                    ))}
+                  </div>
+               </div>
+
+               <div className="space-y-3">
+                  <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest">Extracted Skills</h4>
+                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-2 custom-scrollbar">
+                    {scan.metadata.skills.map(skill => (
+                       <span key={skill} className="px-3 py-1 bg-white/5 text-white/70 text-[10px] font-black uppercase tracking-widest rounded-full border border-white/10">
+                          {skill}
+                       </span>
+                    ))}
+                  </div>
+               </div>
+
+               <div className="flex flex-col md:flex-row gap-6">
+                 <div className="flex-1 space-y-2 text-sm text-white/60 font-medium bg-white/[0.01] p-4 rounded-2xl border border-white/5">
+                    <h4 className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-3">Contact Info</h4>
+                    <p className="flex items-center gap-2 truncate"><UserIcon className="w-4 h-4 text-white/30" /> Candidate</p>
+                    {scan.metadata.contactInfo.email && <p className="flex items-center gap-2 truncate"><Globe className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.email}</p>}
+                    {scan.metadata.contactInfo.phone && <p className="flex items-center gap-2 truncate"><ShieldCheck className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.phone}</p>}
+                    {scan.metadata.contactInfo.linkedin && <p className="flex items-center gap-2 truncate"><Building2 className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.linkedin}</p>}
+                 </div>
+                 <div className="flex-1 space-y-2 bg-white/[0.01] p-4 rounded-2xl border border-white/5 flex flex-col justify-end">
+                    {Object.entries(scan.metadata.checkmarks).map(([k, v]) => (
+                      <p key={k} className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase tracking-widest">
+                         {v ? <CheckCircle2 className="w-4 h-4 text-[#10b981]" /> : <XCircle className="w-4 h-4 text-white/20" />}
+                         {k.replace(/([A-Z])/g, ' $1')}
+                      </p>
+                    ))}
+                 </div>
+               </div>
+            </div>
+         </div>
+
+         {/* 5. KEYWORD ANALYSIS */}
+         <div className="glass p-8 rounded-[2.5rem] border-white/5 space-y-6">
+            <h3 className="text-xl font-black text-white flex items-center gap-2">
+              <Search className="w-5 h-5 text-white/40" /> Keyword Analysis — <span className="text-[#6366f1]">{scan.results[0].breakdown.keywordMatch.score}% Match Rate</span>
+            </h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               <div className="space-y-4">
+                 <h4 className="text-[10px] font-black text-[#10b981] uppercase tracking-widest">Matched Keywords</h4>
                  <div className="flex flex-wrap gap-2">
-                   {scan.metadata.sections.map(s => (
-                     <span key={s} className="px-3 py-1.5 bg-[#10b981]/10 text-[#10b981] text-[10px] font-black uppercase rounded-lg border border-[#10b981]/20">
-                       <Check className="w-3 h-3 inline-block mr-1 opacity-50" /> {s}
+                   {scan.results[0].breakdown.keywordMatch.matched.map(kw => (
+                     <span key={kw} className="px-3 py-1.5 bg-[#10b981]/10 text-[#10b981] text-[10px] font-black uppercase tracking-widest rounded-lg border border-[#10b981]/20">
+                       {kw}
                      </span>
                    ))}
                  </div>
-              </div>
-              <div className="space-y-4">
-                 <h4 className="text-[10px] font-black text-white/40 uppercase tracking-[0.2em]">Platform Compatibility Signals</h4>
-                 <div className="flex gap-6">
-                    {Object.entries(scan.metadata.checkmarks).map(([key, val]) => (
-                      <div key={key} className={cn("flex items-center gap-2 text-[10px] font-black uppercase tracking-widest", val ? 'text-[#10b981]' : 'text-white/20')}>
-                         {val ? <Check className="w-3 h-3" /> : <X className="w-3 h-3" />}
-                         {key.replace(/([A-Z])/g, ' $1')}
-                      </div>
-                    ))}
+               </div>
+               <div className="space-y-4">
+                 <h4 className="text-[10px] font-black text-[#ef4444] uppercase tracking-widest">Missing Keywords</h4>
+                 <div className="flex flex-wrap gap-2">
+                   {scan.results[0].breakdown.keywordMatch.missing.map(kw => (
+                     <span key={kw} className="px-3 py-1.5 bg-[#ef4444]/10 text-[#ef4444] text-[10px] font-black uppercase tracking-widest rounded-lg border border-[#ef4444]/20">
+                       {kw}
+                     </span>
+                   ))}
                  </div>
-              </div>
-           </div>
-           <div className="glass p-10 rounded-[3rem] space-y-8">
-              <div className="space-y-1">
-                <h3 className="text-2xl font-black text-white">Contact Integrity</h3>
-                <p className="text-xs text-white/30 font-bold uppercase tracking-widest">Identified Signals</p>
-              </div>
-              <div className="space-y-6">
-                 {[
-                   { label: 'Account', value: scan.metadata.contactInfo.email, icon: UserIcon },
-                   { label: 'Endpoint', value: scan.metadata.contactInfo.phone, icon: ShieldCheck },
-                   { label: 'LinkedIn', value: scan.metadata.contactInfo.linkedin, icon: Building2 },
-                   { label: 'Source', value: scan.metadata.contactInfo.location, icon: Info },
-                 ].map(item => item.value ? (
-                   <div key={item.label} className="flex items-center gap-4">
-                      <div className="w-10 h-10 bg-white/5 rounded-xl flex items-center justify-center shrink-0">
-                         <item.icon className="w-4 h-4 text-white/40" />
-                      </div>
-                      <div className="overflow-hidden">
-                         <p className="text-[10px] text-white/20 font-black uppercase tracking-widest">{item.label}</p>
-                         <p className="text-sm font-bold text-white truncate">{item.value}</p>
-                      </div>
-                   </div>
-                 ) : null)}
-              </div>
-           </div>
-        </div>
+               </div>
+            </div>
+         </div>
+
+         {/* 6. OPTIMIZATION SUGGESTIONS */}
+         <div className="glass p-8 rounded-[2.5rem] border-white/5 space-y-6">
+            <h3 className="text-xl font-black text-white flex items-center gap-2">
+              <Sparkles className="w-5 h-5 text-yellow-400" /> Optimization Suggestions
+            </h3>
+            <div className="space-y-4">
+               {scan.results[0].suggestions.map((s, idx) => (
+                 <div key={idx} className="bg-[#050507] p-5 rounded-2xl border border-white/5 flex gap-4 items-center">
+                    <div className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0 text-white/50 text-xs font-black">
+                       {idx + 1}
+                    </div>
+                    <div className="flex-1 space-y-1">
+                       <p className="text-sm font-bold text-white">{s.text}</p>
+                       <p className="text-[9px] font-black text-white/30 uppercase tracking-widest">Platforms: {s.platforms.join(', ')}</p>
+                    </div>
+                    <div className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-md border",
+                      s.priority === 'HIGH' ? "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20" :
+                      s.priority === 'MEDIUM' ? "bg-[#eab308]/10 text-[#eab308] border-[#eab308]/20" :
+                      "bg-white/5 text-white/40 border-white/10"
+                    )}>
+                       {s.priority} PRIORITY
+                    </div>
+                 </div>
+               ))}
+            </div>
+         </div>
       </div>
     </div>
   );

@@ -1,4 +1,5 @@
 import { GoogleGenAI, Type } from "@google/genai";
+import { runDeterministicEngine } from "./engine";
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY || "" });
 
@@ -129,7 +130,10 @@ const ATS_SCHEMA = {
 };
 
 export async function analyzeResume(resumeText: string, jobDescription?: string): Promise<AnalysisResponse> {
-  const prompt = `
+  // Attempt Gemini analysis only when an API key is configured
+  if (process.env.GEMINI_API_KEY) {
+    try {
+      const prompt = `
     Analyze the following resume text and provide a detailed ATS simulation report based on our "Big Picture" scoring engine.
 
     RESUME TEXT:
@@ -173,16 +177,28 @@ export async function analyzeResume(resumeText: string, jobDescription?: string)
     - Extract "metadata" with contact info, skills, and layout checkmarks.
   `;
 
-  const response = await ai.models.generateContent({
-    model: "gemini-3-flash-preview",
-    contents: prompt,
-    config: {
-      responseMimeType: "application/json",
-      responseSchema: ATS_SCHEMA
-    }
-  });
+      const response = await ai.models.generateContent({
+        model: "gemini-3-flash-preview",
+        contents: prompt,
+        config: {
+          responseMimeType: "application/json",
+          responseSchema: ATS_SCHEMA
+        }
+      });
 
-  if (!response.text) throw new Error("No response from AI");
-  return JSON.parse(response.text.trim()) as AnalysisResponse;
+      if (!response.text) throw new Error("No response from AI");
+      const parsed = JSON.parse(response.text.trim()) as AnalysisResponse;
+      // Basic schema validation: must have exactly 6 results
+      if (!parsed?.results || parsed.results.length !== 6) {
+        throw new Error("Gemini response did not contain exactly 6 results");
+      }
+      return parsed;
+    } catch (err) {
+      console.warn("[ATSify] Gemini unavailable – falling back to deterministic engine:", err);
+    }
+  }
+
+  // Fallback: deterministic rule-based scoring engine
+  return runDeterministicEngine(resumeText, jobDescription);
 }
 

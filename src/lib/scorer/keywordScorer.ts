@@ -4,7 +4,6 @@ import { extractKeywords } from '../nlp/keywordExtractor';
 
 export function scoreKeywords(doc: ParsedDocument, jobDescription?: string): ScoreComponent {
   if (!jobDescription) {
-    // If no JD, assume it meets basic generic NLP bounds for the industry
     return {
       score: 85,
       matched: ['Dynamic', 'Leadership', 'Management'],
@@ -14,13 +13,13 @@ export function scoreKeywords(doc: ParsedDocument, jobDescription?: string): Sco
   }
 
   const jdKeywords = extractKeywords(jobDescription);
-  const resumeText = doc.text.toLowerCase();
-  
+  const resumeKeywordSet = new Set(extractKeywords(doc.text));
+
   const matched: string[] = [];
   const missing: string[] = [];
 
   for (const kw of jdKeywords) {
-    if (resumeText.includes(kw.toLowerCase())) {
+    if (resumeKeywordSet.has(kw)) {
       matched.push(kw);
     } else {
       missing.push(kw);

@@ -16,9 +16,10 @@ export function detectSections(text: string): Section[] {
   let currentIndex = 0;
 
   for (let i = 0; i < lines.length; i++) {
-    const line = lines[i].trim();
+    const rawLine = lines[i];
+    const line = rawLine.trim().replace(/:$/, '');
     if (!line) {
-      currentIndex += lines[i].length + 1;
+      currentIndex += rawLine.length + 1;
       continue;
     }
 

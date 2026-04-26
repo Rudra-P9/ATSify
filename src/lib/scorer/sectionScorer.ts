@@ -1,5 +1,6 @@
 import { ScoreComponent } from './types';
 import { ParsedDocument, SectionType } from '../parser';
+import { DEFAULT_THRESHOLDS } from '../config/thresholds';
 
 const REQUIRED_SECTIONS = [SectionType.EXPERIENCE, SectionType.EDUCATION, SectionType.SKILLS];
 
@@ -22,7 +23,7 @@ export function scoreSections(doc: ParsedDocument): ScoreComponent {
 
   // Penalize for completely unidentifiable structure
   if (foundSections.filter(s => s === SectionType.UNKNOWN).length > 2) {
-    score -= 15;
+    score -= DEFAULT_THRESHOLDS.HIGH_PRIORITY_DELTA;
   }
 
   return {

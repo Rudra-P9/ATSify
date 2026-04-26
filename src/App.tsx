@@ -635,7 +635,7 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
             </div>
 
             <div className="flex flex-col items-end gap-3 relative z-10 shrink-0">
-               <div className="text-xl font-black text-white px-2">{systemsPassed}/6 Systems Passed</div>
+               <div className="text-xl font-black text-white px-2">{systemsPassed}/{scan.results.length} Systems Passed</div>
                <div className="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white uppercase tracking-widest">
                   [ General Readiness ]
                </div>

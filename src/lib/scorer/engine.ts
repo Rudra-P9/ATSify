@@ -6,16 +6,9 @@ import { scoreSections } from './sectionScorer';
 import { scoreExperience } from './experienceScorer';
 import { scoreEducation } from './educationScorer';
 
-// Default Weights
-const DEFAULT_WEIGHTS: ScoringWeights = {
-  formatting: 0.20,
-  keywordMatch: 0.35,
-  sections: 0.15,
-  experience: 0.20,
-  education: 0.10
-};
+import { GLOBAL_BASELINE_WEIGHTS } from '../config/weights';
 
-export function executeScoringEngine(doc: ParsedDocument, jobDescription?: string, weights: ScoringWeights = DEFAULT_WEIGHTS): ScorerResult {
+export function executeScoringEngine(doc: ParsedDocument, jobDescription?: string, weights: ScoringWeights = GLOBAL_BASELINE_WEIGHTS): ScorerResult {
   const formatting = scoreFormatting(doc);
   const keywordMatch = scoreKeywords(doc, jobDescription);
   const sections = scoreSections(doc);

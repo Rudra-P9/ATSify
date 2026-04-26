@@ -30,7 +30,10 @@ export async function parseDocument(file: File): Promise<ParsedDocument> {
     text,
     sections,
     metadata: {
-      wordCount: text.split(/\s+/).length,
+      wordCount: (function() {
+        const trimmedText = text.trim();
+        return trimmedText ? trimmedText.split(/\s+/).length : 0;
+      })(),
       pageCount: 1, // rough estimate or replace with actual pdf page parsing
       hasTables: false,
       hasColumns: false,

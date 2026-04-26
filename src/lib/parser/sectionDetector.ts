@@ -1,12 +1,12 @@
 import { Section, SectionType } from './types';
 
 const SECTION_PATTERNS = {
-  [SectionType.EXPERIENCE]: /^(?:Professional )?Experience|Work History|Employment/i,
-  [SectionType.EDUCATION]: /^Education|Academic Background/i,
-  [SectionType.SKILLS]: /^(?:Technical )?Skills|Core Competencies/i,
-  [SectionType.PROJECTS]: /^(?:Personal )?Projects/i,
-  [SectionType.SUMMARY]: /^(?:Professional )?Summary|Profile|Objective/i,
-  [SectionType.CERTIFICATIONS]: /^Certifications|Licenses/i
+  [SectionType.EXPERIENCE]: /^(?:(?:Professional )?Experience|Work History|Employment)/i,
+  [SectionType.EDUCATION]: /^(?:Education|Academic Background)/i,
+  [SectionType.SKILLS]: /^(?:(?:Technical )?Skills|Core Competencies)/i,
+  [SectionType.PROJECTS]: /^(?:(?:Personal )?Projects)/i,
+  [SectionType.SUMMARY]: /^(?:(?:Professional )?Summary|Profile|Objective)/i,
+  [SectionType.CERTIFICATIONS]: /^(?:Certifications|Licenses)/i
 };
 
 export function detectSections(text: string): Section[] {

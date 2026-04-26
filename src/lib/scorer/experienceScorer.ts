@@ -21,25 +21,24 @@ export function scoreExperience(doc: ParsedDocument): ExperienceScoreComponent {
   const text = experienceSection.content;
   const lines = text.split('\n').filter(l => l.trim().length > 0);
   
+  const bulletLines = lines.filter(l =>
+    /^[-•●▪◦]/.test(l.trim())
+  );
   let actionVerbCount = 0;
   let quantifiedBullets = 0;
-  let totalBullets = lines.length;
+  const totalBullets = bulletLines.length;
 
   for (const line of lines) {
     const l = line.toLowerCase();
-    let hasAction = false;
-    let hasQuantity = false;
 
     // Check for metrics/quantification ($, %, numbers)
     if (/\d+%/.test(l) || /\$\d+/.test(l) || /\b\d+\b/.test(l)) {
-      hasQuantity = true;
       quantifiedBullets++;
     }
 
     // Check for action verbs at start of bullets
     for (const verb of ACTION_VERBS) {
       if (l.includes(verb)) {
-        hasAction = true;
         actionVerbCount++;
         break; // Only count once per line
       }

@@ -1,5 +1,5 @@
 import { ScoreComponent } from './types';
-import { ParsedDocument } from '../parser';
+import { ParsedDocument } from '../parser/index';
 import { extractKeywords } from '../nlp/keywordExtractor';
 
 export function scoreKeywords(doc: ParsedDocument, jobDescription?: string): ScoreComponent {

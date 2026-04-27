@@ -1,4 +1,4 @@
-import { ParsedDocument } from '../parser';
+import { ParsedDocument } from '../parser/index';
 import { ScorerResult, ScoringWeights, ScoringInput } from './types';
 import { scoreFormatting } from './formatScorer';
 import { scoreKeywords } from './keywordScorer';

@@ -1,4 +1,4 @@
-import { parseDocument } from '../parser';
+import { parseDocument } from '../parser/index';
 import { executeScoringEngine } from '../scorer/engine';
 import { generateReport } from '../report/generateReport';
 import { PLATFORMS, ATSProfile } from '../platforms';
@@ -19,14 +19,14 @@ export async function processResumePipeline(file: File, jobDescription?: string)
   // 2-4. Orchestrate across platforms
   const platformResults = PLATFORMS.map(platform => {
     // 2. Score Layer (injecting specific weights per logic)
-    const scoreResult = executeScoringEngine(parsedDoc, jobDescription, platform.weights);
+    const scoreResult = executeScoringEngine(parsedDoc, jobDescription, platform);
 
     // If platform requires exact keywords and we missed many, heavily penalize overall score
-    if (platform.requiresExactKeywordMatch && scoreResult.breakdown.keywordMatch.score < 50) {
+    if (platform.keywordStrategy === 'exact' && scoreResult.breakdown.keywordMatch.score < 50) {
       scoreResult.overallScore = Math.max(0, scoreResult.overallScore - 15);
     }
     // If strict formatting and issues found
-    if (platform.strictFormatting && scoreResult.breakdown.formatting.issues.length > 0) {
+    if (platform.parsingStrictness > 0.7 && scoreResult.breakdown.formatting.issues.length > 0) {
       scoreResult.overallScore = Math.max(0, scoreResult.overallScore - 20);
     }
 

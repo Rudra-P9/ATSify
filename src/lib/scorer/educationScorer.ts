@@ -1,101 +1,144 @@
 import { ScoreComponent } from './types';
-import { ParsedDocument, SectionType } from '../parser';
+import { ParsedDocument, SectionType } from '../parser/index';
 
+const DEGREE_LEVELS: Record<string, number> = {
+  phd: 5,
+  'ph.d': 5,
+  doctor: 5,
+  doctorate: 5,
+  master: 4,
+  "master's": 4,
+  mba: 4,
+  ms: 4,
+  'm.s': 4,
+  ma: 4,
+  'm.a': 4,
+  'm.b.a': 4,
+  bachelor: 3,
+  "bachelor's": 3,
+  bs: 3,
+  'b.s': 3,
+  ba: 3,
+  'b.a': 3,
+  'b.eng': 3,
+  associate: 2,
+  "associate's": 2,
+  as: 2,
+  'a.s': 2,
+  aa: 2,
+  'a.a': 2,
+  diploma: 1,
+  certificate: 1,
+  certification: 1
+};
+
+// scores education section: degree, institution, dates, GPA, honors
 export function scoreEducation(doc: ParsedDocument): ScoreComponent {
   const educationSection = doc.sections.find(s => s.type === SectionType.EDUCATION);
-  
-  if (!educationSection) {
+  const educationText = educationSection?.content || '';
+
+  if (!educationText || educationText.trim().length === 0) {
     return {
-      score: 0,
+      score: 20,
       matched: [],
-      missing: ['Degree', 'Institution Name', 'Graduation Year', 'Field of Study', 'GPA', 'Academic Honors'],
-      notes: ['No explicit Education section detected.']
+      missing: ['Education Section'],
+      notes: ['no education section found. most positions require at least a degree listing.']
     };
   }
 
-  const text = educationSection.content.toLowerCase();
-  
-  let score = 0;
+  const notes: string[] = [];
   const matched: string[] = [];
   const missing: string[] = [];
-  const notes: string[] = [];
+  let score = 0;
+  const lowerText = educationText.toLowerCase();
 
-  // 1. Degree (30 points)
-  if (/(phd|ph\.d|doctorate)/.test(text)) {
+  // check for degree mention
+  let highestDegree = 0;
+  let degreeFound = '';
+  for (const [degree, level] of Object.entries(DEGREE_LEVELS)) {
+    if (lowerText.includes(degree) && level > highestDegree) {
+      highestDegree = level;
+      degreeFound = degree;
+    }
+  }
+
+  if (highestDegree > 0) {
     score += 30;
-    matched.push('PhD/Doctorate');
-  } else if (/(master|mba|m\.s|m\.a)/.test(text)) {
-    score += 30;
-    matched.push('Master\'s Degree');
-  } else if (/(bachelor|b\.s|b\.a|bs|ba)\b/.test(text)) {
-    score += 30;
-    matched.push('Bachelor\'s Degree');
-  } else if (/(associate|a\.s|a\.a)\b/.test(text)) {
-    score += 30;
-    matched.push('Associate Degree');
-  } else if (/(diploma|certificate)/.test(text)) {
-    score += 30;
-    matched.push('Diploma/Certificate');
+    matched.push('Degree');
+    notes.push(`degree detected: ${degreeFound}`);
   } else {
     missing.push('Degree');
     notes.push('no clear degree type found. ensure your degree is explicitly stated.');
   }
 
-  // 2. Institution (20 points)
-  if (/(university|college|institute|school|academy|polytechnic)/.test(text)) {
+  // check for institution name (heuristic: capitalized multi-word phrase)
+  const hasInstitution = /[A-Z][a-zA-Z]+(?:\s+[A-Z][a-zA-Z]+)+/.test(educationText);
+  if (hasInstitution) {
     score += 20;
-    matched.push('Institution Name');
+    matched.push('Institution');
   } else {
-    missing.push('Institution Name');
+    missing.push('Institution');
     notes.push('institution name may not be clearly parseable');
   }
 
-  // 3. Dates (15 points)
-  if (/\b(19|20)\d{2}\b/.test(text)) {
+  // check for dates
+  const hasYear = /\b(19|20)\d{2}\b/.test(educationText);
+  if (hasYear) {
     score += 15;
-    matched.push('Graduation Year');
+    matched.push('Dates');
   } else {
-    missing.push('Graduation Year');
+    missing.push('Dates');
     notes.push('no graduation date found. include your graduation year.');
   }
 
-  // 4. Field of Study (15 points)
-  if (/(computer science|engineering|business|finance|accounting|biology|chemistry|physics|math|psychology|nursing|history|english|art|design|economics|management|administration|science|major|minor)\b/.test(text)) {
+  // check for field of study
+  const fieldIndicators = /\b(?:in|of)\s+[A-Z]/;
+  const hasField =
+    fieldIndicators.test(educationText) ||
+    /(?:computer science|engineering|business|mathematics|biology|chemistry|physics|psychology|economics|finance|accounting|marketing|nursing|law|education|design)/i.test(
+      educationText
+    );
+  if (hasField) {
     score += 15;
     matched.push('Field of Study');
+    notes.push('field of study detected');
   } else {
     missing.push('Field of Study');
     notes.push('consider explicitly stating your field of study');
   }
 
-  // 5. GPA (10 points)
-  const gpaMatch = text.match(/gpa\s*:?\s*([0-4]\.\d+)/);
-  if (gpaMatch) {
+  // check for GPA
+  const hasGPA = /\bgpa\b/i.test(educationText) || /\b[34]\.\d{1,2}\s*\/?\s*4/i.test(educationText);
+  if (hasGPA) {
     score += 10;
     matched.push('GPA');
-    const gpaValue = parseFloat(gpaMatch[1]);
-    if (gpaValue >= 3.5) {
-      notes.push(`strong GPA (${gpaValue})`);
-    } else if (gpaValue < 3.0) {
-      notes.push('consider removing GPA below 3.0 unless required');
-    } else {
-      notes.push('GPA listed');
+    notes.push('GPA listed');
+    // check if GPA is strong
+    const gpaMatch = educationText.match(/(\d\.\d{1,2})/);
+    if (gpaMatch) {
+      const gpa = parseFloat(gpaMatch[1]);
+      if (gpa >= 3.5) notes.push(`strong GPA (${gpa})`);
+      else if (gpa < 3.0) notes.push(`consider removing GPA below 3.0 unless required`);
     }
   } else {
     missing.push('GPA');
   }
 
-  // 6. Honors (10 points)
-  if (/(cum laude|dean's list|honors|distinction)/.test(text)) {
+  // check for honors
+  const hasHonors =
+    /\b(cum laude|magna cum laude|summa cum laude|dean'?s?\s*list|honors?|distinction)\b/i.test(
+      educationText
+    );
+  if (hasHonors) {
     score += 10;
-    matched.push('Academic Honors');
+    matched.push('Honors');
     notes.push('academic honors detected');
   } else {
-    missing.push('Academic Honors');
+    missing.push('Honors');
   }
 
   return {
-    score: Math.min(score, 100),
+    score: Math.min(100, score),
     matched,
     missing,
     notes

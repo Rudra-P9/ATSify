@@ -1,5 +1,5 @@
 import { ExperienceScoreComponent } from './types';
-import { ParsedDocument, SectionType } from '../parser';
+import { ParsedDocument, SectionType } from '../parser/index';
 
 const ACTION_VERBS = [
   'led',

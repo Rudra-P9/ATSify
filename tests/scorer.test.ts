@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { scoreExperience } from '../src/lib/scorer/experienceScorer';
-import { ParsedDocument, SectionType } from '../src/lib/parser';
+import { ParsedDocument, SectionType } from '../src/lib/parser/index';
 
 describe('Experience Scorer', () => {
   it('should penalize unquantified bullets', () => {

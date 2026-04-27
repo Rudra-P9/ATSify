@@ -1,35 +1,29 @@
 import { ScoreComponent } from './types';
-import { ParsedDocument, SectionType } from '../parser';
-import { DEFAULT_THRESHOLDS } from '../config/thresholds';
 
-const REQUIRED_SECTIONS = [SectionType.EXPERIENCE, SectionType.EDUCATION, SectionType.SKILLS];
-
-export function scoreSections(doc: ParsedDocument): ScoreComponent {
-  const foundSections = doc.sections.map(s => s.type);
-  const matched: string[] = [];
+// scores section completeness based on the ATS profile's required sections
+export function scoreSections(presentSections: string[], requiredSections: string[]): ScoreComponent {
+  const presentSet = new Set(presentSections.map((s) => s.toLowerCase()));
+  const present: string[] = [];
   const missing: string[] = [];
 
-  for (const required of REQUIRED_SECTIONS) {
-    if (foundSections.includes(required)) {
-      matched.push(required);
+  for (const required of requiredSections) {
+    if (presentSet.has(required.toLowerCase())) {
+      present.push(required);
     } else {
       missing.push(required);
     }
   }
 
-  // Calculate base structure health
-  const ratio = matched.length / REQUIRED_SECTIONS.length;
-  let score = Math.round(ratio * 100);
-
-  // Penalize for completely unidentifiable structure
-  if (foundSections.filter(s => s === SectionType.UNKNOWN).length > 2) {
-    score -= DEFAULT_THRESHOLDS.HIGH_PRIORITY_DELTA;
-  }
+  // score based on percentage of required sections present
+  const score =
+    requiredSections.length > 0
+      ? Math.round((present.length / requiredSections.length) * 100)
+      : 100;
 
   return {
-    score: Math.max(score, 0),
-    matched,
-    missing,
-    notes: missing.length > 0 ? ['Missing critical ATS standard sections'] : ['Standard sections verified']
+    score,
+    matched: present,
+    missing: missing,
+    notes: missing.length > 0 ? [`Missing: ${missing.join(', ')}`] : ['All required sections present']
   };
 }

@@ -1,5 +1,4 @@
-import { ScoreComponent } from './types';
-import { ParsedDocument } from '../parser';
+import type { ScoreBreakdown } from './types';
 
 const DEGREE_LEVELS: Record<string, number> = {
   phd: 5,
@@ -33,15 +32,10 @@ const DEGREE_LEVELS: Record<string, number> = {
 };
 
 // scores education section: degree, institution, dates, GPA, honors
-export function scoreEducation(doc: ParsedDocument): ScoreComponent {
-  const educationSection = doc.sections.find(s => s.type === 'education');
-  const educationText = educationSection?.content || '';
-
+export function scoreEducation(educationText: string): ScoreBreakdown['education'] {
   if (!educationText || educationText.trim().length === 0) {
     return {
       score: 20,
-      matched: [],
-      missing: ['Education Section'],
       notes: ['no education section found. most positions require at least a degree listing.']
     };
   }
@@ -139,8 +133,6 @@ export function scoreEducation(doc: ParsedDocument): ScoreComponent {
 
   return {
     score: Math.min(100, score),
-    matched,
-    missing,
     notes
   };
 }

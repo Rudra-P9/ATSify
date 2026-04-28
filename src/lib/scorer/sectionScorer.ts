@@ -1,7 +1,7 @@
-import { ScoreComponent } from './types';
+import type { ScoreBreakdown } from './types';
 
 // scores section completeness based on the ATS profile's required sections
-export function scoreSections(presentSections: string[], requiredSections: string[]): ScoreComponent {
+export function scoreSections(presentSections: string[], requiredSections: string[]): ScoreBreakdown['sections'] {
   const presentSet = new Set(presentSections.map((s) => s.toLowerCase()));
   const present: string[] = [];
   const missing: string[] = [];
@@ -22,8 +22,7 @@ export function scoreSections(presentSections: string[], requiredSections: strin
 
   return {
     score,
-    matched: present,
-    missing: missing,
-    notes: missing.length > 0 ? [`Missing: ${missing.join(', ')}`] : ['All required sections present']
+    present,
+    missing
   };
 }

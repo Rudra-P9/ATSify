@@ -1,7 +1,7 @@
 import { ATSReport, Insight } from './types';
-import { ScorerResult } from '../scorer';
+import { ScoreResult } from '../scorer';
 
-export function generateReport(result: ScorerResult): ATSReport {
+export function generateReport(result: ScoreResult): ATSReport {
   const insights: Insight[] = [];
   
   if (result.breakdown.formatting.issues.length > 0) {

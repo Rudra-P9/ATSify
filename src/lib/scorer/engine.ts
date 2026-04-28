@@ -1,85 +1,195 @@
-import { ParsedDocument } from '../parser';
-import { ScorerResult, ScoringWeights, ScoringInput } from './types';
+import type { ATSProfile, ScoringInput, ScoreResult, ScoreBreakdown } from './types';
+import { PLATFORMS } from '../platforms/index';
 import { scoreFormatting } from './formatScorer';
-import { scoreKeywords } from './keywordScorer';
 import { scoreSections } from './sectionScorer';
 import { scoreExperience } from './experienceScorer';
 import { scoreEducation } from './educationScorer';
-import { ATSProfile } from '../platforms/types';
-import { GLOBAL_BASELINE_WEIGHTS } from '../config/weights';
+import { matchKeywords } from './keywordScorer';
 
-export function executeScoringEngine(
-  doc: ParsedDocument,
-  jobDescription?: string,
-  profile?: ATSProfile
-): ScorerResult {
-  const weights = profile?.weights || GLOBAL_BASELINE_WEIGHTS;
-  const strictness = profile?.parsingStrictness || 0.5;
+// scores a resume against all ATS profiles. deterministic: same input = same output
+export function scoreResume(input: ScoringInput): ScoreResult[] {
+  return PLATFORMS.map((profile) => scoreAgainstProfile(input, profile));
+}
 
-  // Map ParsedDocument to ScoringInput
-  const scoringInput: ScoringInput = {
-    hasMultipleColumns: doc.metadata.hasMultipleColumns,
-    hasTables: doc.metadata.hasTables,
-    hasImages: doc.metadata.hasImages,
-    pageCount: doc.metadata.pageCount,
-    wordCount: doc.metadata.wordCount,
-    resumeText: doc.rawText,
-    resumeSections: doc.sections.map((s) => s.type.toLowerCase()),
-    experienceBullets: doc.sections
-      .filter((s) => s.type === 'experience')
-      .map((s) => s.content.split('\n'))
-      .flat(),
-    jobDescription: jobDescription,
-    resumeSkills: doc.sections
-      .filter((s) => s.type === 'skills')
-      .map((s) => s.content.split('\n'))
-      .flat()
-  };
+// scores a resume against a single ATS profile
+export function scoreAgainstProfile(input: ScoringInput, profile: ATSProfile): ScoreResult {
+  const breakdown = computeBreakdown(input, profile);
+  const weightedScore = computeWeightedScore(breakdown, profile);
 
-  const formatting = scoreFormatting(scoringInput, strictness);
-  const keywordMatch = scoreKeywords(doc, jobDescription);
-  const sections = scoreSections(
-    doc.sections.map((s) => s.type),
-    profile?.requiredSections || (['experience', 'education', 'skills'] as any)
+  // apply quirk penalties/bonuses
+  const quirkAdjustment = computeQuirkAdjustment(input, profile);
+  const overallScore = Math.max(
+    0,
+    Math.min(100, Math.round(weightedScore + quirkAdjustment.totalAdjustment))
   );
-  const experience = scoreExperience(doc);
-  const education = scoreEducation(doc);
 
-  // Calculate quantification score (0-100)
-  const quantificationScore = experience.totalBullets > 0
-    ? (experience.quantifiedBullets / experience.totalBullets) * 100
-    : 0;
+  const suggestions = generateSuggestions(breakdown, profile, quirkAdjustment.messages);
 
-  // Apply quirks if profile exists
-  let quirksDeductions = 0;
-  if (profile?.quirks) {
-    for (const quirk of profile.quirks) {
-      const result = quirk.check(scoringInput);
-      if (result) {
-        quirksDeductions += result.penalty;
-        formatting.notes.push(`${quirk.id}: ${result.message}`);
-      }
-    }
-  }
+  return {
+    system: profile.name,
+    vendor: profile.vendor,
+    overallScore,
+    passesFilter: overallScore >= profile.passingScore,
+    breakdown,
+    suggestions
+  };
+}
 
-  const overallScore = Math.round(
-    formatting.score * weights.formatting +
-    keywordMatch.score * weights.keywordMatch +
-    sections.score * weights.sectionCompleteness +
-    experience.score * weights.experienceRelevance +
-    education.score * weights.educationMatch +
-    quantificationScore * weights.quantification -
-    quirksDeductions
+// runs each individual scorer and assembles the breakdown
+function computeBreakdown(input: ScoringInput, profile: ATSProfile): ScoreBreakdown {
+  const formatting = scoreFormatting(input, profile.parsingStrictness);
+  const sections = scoreSections(input.resumeSections, profile.requiredSections);
+  const experience = scoreExperience(input.experienceBullets);
+  const education = scoreEducation(input.educationText);
+  const keywords = matchKeywords(
+    input.resumeText,
+    input.jobDescription || '',
+    profile.keywordStrategy
   );
 
   return {
-    overallScore: Math.max(0, Math.min(100, overallScore)),
-    breakdown: {
-      formatting,
-      keywordMatch,
-      sections,
-      experience,
-      education
+    formatting: {
+      score: formatting.score,
+      issues: formatting.issues,
+      details: formatting.details
+    },
+    keywordMatch: {
+      score: keywords.score,
+      matched: keywords.matched,
+      missing: keywords.missing,
+      synonymMatched: keywords.synonymMatched
+    },
+    sections: {
+      score: sections.score,
+      present: sections.present,
+      missing: sections.missing
+    },
+    experience: {
+      score: experience.score,
+      quantifiedBullets: experience.quantifiedBullets,
+      totalBullets: experience.totalBullets,
+      actionVerbCount: experience.actionVerbCount,
+      highlights: experience.highlights
+    },
+    education: {
+      score: education.score,
+      notes: education.notes
     }
   };
+}
+
+// applies profile weights to produce a single 0-100 score
+function computeWeightedScore(breakdown: ScoreBreakdown, profile: ATSProfile): number {
+  const { weights } = profile;
+
+  // quantification is derived from the experience scorer's quantification ratio
+  const quantificationScore =
+    breakdown.experience.totalBullets > 0
+      ? Math.round(
+        (breakdown.experience.quantifiedBullets / breakdown.experience.totalBullets) * 100
+      )
+      : 0;
+
+  const weighted =
+    breakdown.formatting.score * weights.formatting +
+    breakdown.keywordMatch.score * weights.keywordMatch +
+    breakdown.sections.score * weights.sectionCompleteness +
+    breakdown.experience.score * weights.experienceRelevance +
+    breakdown.education.score * weights.educationMatch +
+    quantificationScore * weights.quantification;
+
+  return weighted;
+}
+
+// runs quirk checks for a profile. negative penalty = bonus, positive = deduction
+function computeQuirkAdjustment(
+  input: ScoringInput,
+  profile: ATSProfile
+): { totalAdjustment: number; messages: string[] } {
+  let totalAdjustment = 0;
+  const messages: string[] = [];
+
+  for (const quirk of profile.quirks) {
+    const result = quirk.check(input);
+    if (result) {
+      totalAdjustment -= result.penalty;
+      messages.push(result.message);
+    }
+  }
+
+  return { totalAdjustment, messages };
+}
+
+// generates rule-based suggestions. LLM enhancement is layered on top separately
+function generateSuggestions(
+  breakdown: ScoreBreakdown,
+  profile: ATSProfile,
+  quirkMessages: string[]
+): string[] {
+  const suggestions: string[] = [];
+
+  // formatting suggestions
+  if (breakdown.formatting.score < 70) {
+    if (breakdown.formatting.issues.some((i) => i.includes('multi-column'))) {
+      suggestions.push('switch to a single-column resume layout for better ATS parsing');
+    }
+    if (breakdown.formatting.issues.some((i) => i.includes('tables'))) {
+      suggestions.push('remove tables and use plain text formatting instead');
+    }
+    if (breakdown.formatting.issues.some((i) => i.includes('images'))) {
+      suggestions.push('remove images, logos, and graphics from your resume');
+    }
+  }
+
+  // keyword suggestions
+  if (breakdown.keywordMatch.score < 60 && breakdown.keywordMatch.missing.length > 0) {
+    const topMissing = breakdown.keywordMatch.missing.slice(0, 5);
+    suggestions.push(
+      `add these missing keywords from the job description: ${topMissing.join(', ')}`
+    );
+
+    if (profile.keywordStrategy === 'exact') {
+      suggestions.push(
+        `${profile.name} uses exact keyword matching. use the exact terms from the job posting, not synonyms.`
+      );
+    }
+  }
+
+  // section suggestions
+  if (breakdown.sections.missing.length > 0) {
+    suggestions.push(
+      `add missing sections: ${breakdown.sections.missing.join(', ')}. ${profile.name} requires these for proper parsing.`
+    );
+  }
+
+  // experience suggestions
+  if (breakdown.experience.totalBullets > 0) {
+    const quantRatio = breakdown.experience.quantifiedBullets / breakdown.experience.totalBullets;
+    if (quantRatio < 0.3) {
+      suggestions.push(
+        'add more quantified achievements (numbers, percentages, dollar amounts) to your experience bullets'
+      );
+    }
+    if (breakdown.experience.actionVerbCount / breakdown.experience.totalBullets < 0.5) {
+      suggestions.push(
+        'start more bullet points with strong action verbs (led, developed, increased, delivered)'
+      );
+    }
+  } else {
+    suggestions.push('add detailed experience bullets with measurable achievements');
+  }
+
+  // education suggestions
+  if (breakdown.education.score < 50) {
+    suggestions.push(
+      'ensure your education section includes degree type, institution, and graduation date'
+    );
+  }
+
+  // quirk-specific suggestions (from profile checks)
+  for (const message of quirkMessages) {
+    suggestions.push(message);
+  }
+
+  return suggestions;
 }

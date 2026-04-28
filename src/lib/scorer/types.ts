@@ -1,20 +1,4 @@
-export interface ScoreComponent {
-  score: number;
-  matched: string[];
-  missing: string[];
-  notes: string[];
-}
-
-export interface FormatScoreComponent extends ScoreComponent {
-  issues: string[];
-  details: string[];
-}
-
-export interface ExperienceScoreComponent extends ScoreComponent {
-  actionVerbCount: number;
-  quantifiedBullets: number;
-  totalBullets: number;
-}
+export type { ATSProfile } from '../platforms/types';
 
 export interface ScoringInput {
   hasMultipleColumns: boolean;
@@ -25,21 +9,48 @@ export interface ScoringInput {
   resumeText: string;
   resumeSections: string[];
   experienceBullets: string[];
+  educationText: string;
   jobDescription?: string;
   resumeSkills: string[];
 }
 
-export interface Breakdown {
-  formatting: FormatScoreComponent;
-  keywordMatch: ScoreComponent;
-  sections: ScoreComponent;
-  experience: ExperienceScoreComponent;
-  education: ScoreComponent;
+export interface ScoreBreakdown {
+  formatting: {
+    score: number;
+    issues: string[];
+    details: string[];
+  };
+  keywordMatch: {
+    score: number;
+    matched: string[];
+    missing: string[];
+    synonymMatched: string[];
+  };
+  sections: {
+    score: number;
+    present: string[];
+    missing: string[];
+  };
+  experience: {
+    score: number;
+    quantifiedBullets: number;
+    totalBullets: number;
+    actionVerbCount: number;
+    highlights: string[];
+  };
+  education: {
+    score: number;
+    notes: string[];
+  };
 }
 
-export interface ScorerResult {
+export interface ScoreResult {
+  system: string;
+  vendor: string;
   overallScore: number;
-  breakdown: Breakdown;
+  passesFilter: boolean;
+  breakdown: ScoreBreakdown;
+  suggestions: string[];
 }
 
 export interface ScoringWeights {

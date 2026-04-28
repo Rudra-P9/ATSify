@@ -1,5 +1,4 @@
-import { ExperienceScoreComponent } from './types';
-import { ParsedDocument } from '../parser';
+import type { ScoreBreakdown } from './types';
 
 const ACTION_VERBS = [
   'led',
@@ -13,27 +12,18 @@ const ACTION_VERBS = [
   'orchestrated'
 ];
 
-export function scoreExperience(doc: ParsedDocument): ExperienceScoreComponent {
-  const experienceSection = doc.sections.find(s => s.type === 'experience');
-
-  if (!experienceSection) {
+export function scoreExperience(bullets: string[]): ScoreBreakdown['experience'] {
+  if (!bullets || bullets.length === 0) {
     return {
       score: 0,
-      matched: [],
-      missing: [],
-      notes: ['No explicit Experience section detected.'],
-      actionVerbCount: 0,
       quantifiedBullets: 0,
-      totalBullets: 0
+      totalBullets: 0,
+      actionVerbCount: 0,
+      highlights: []
     };
   }
 
-  const text = experienceSection.content;
-  const lines = text.split('\n').filter(l => l.trim().length > 0);
-
-  const bulletLines = lines.filter(l =>
-    /^[-•●▪◦]/.test(l.trim())
-  );
+  const bulletLines = bullets.map(b => b.trim()).filter(b => b.length > 0);
 
   let actionVerbCount = 0;
   let quantifiedBullets = 0;
@@ -58,14 +48,13 @@ export function scoreExperience(doc: ParsedDocument): ExperienceScoreComponent {
   const verbRatio = totalBullets > 0 ? actionVerbCount / totalBullets : 0;
 
   const score = 50 + (quantityRatio * 25) + (verbRatio * 25);
+  const highlights = bulletLines.filter(l => /\d+%/.test(l) || /\$\d+/.test(l)).slice(0, 3);
 
   return {
     score: Math.min(Math.round(score), 100),
-    matched: [],
-    missing: [],
-    notes: [`Found ${quantifiedBullets} quantified bullets out of ${totalBullets} total.`],
-    actionVerbCount,
     quantifiedBullets,
-    totalBullets
+    totalBullets,
+    actionVerbCount,
+    highlights
   };
 }

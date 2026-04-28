@@ -1,7 +1,7 @@
-import type { ScoringInput, FormatScoreComponent } from './types';
+import type { ScoringInput, ScoreBreakdown } from './types';
 
 // scores resume formatting and parseability; strict ATS systems penalize heavily
-export function scoreFormatting(input: ScoringInput, strictness: number): FormatScoreComponent {
+export function scoreFormatting(input: ScoringInput, strictness: number): ScoreBreakdown['formatting'] {
   const issues: string[] = [];
   const details: string[] = [];
   let deductions = 0;
@@ -120,9 +120,6 @@ export function scoreFormatting(input: ScoringInput, strictness: number): Format
   return {
     score,
     issues,
-    details,
-    matched: [],
-    missing: [],
-    notes: []
+    details
   };
 }

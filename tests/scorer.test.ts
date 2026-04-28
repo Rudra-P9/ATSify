@@ -24,7 +24,7 @@ describe('Experience Scorer', () => {
       }]
     };
 
-    const res = scoreExperience(doc);
+    const res = scoreExperience(doc.sections[0].content.split('\n'));
     expect(res.quantifiedBullets).toBe(0);
     expect(res.score).toBeLessThan(70);
   });

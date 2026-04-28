@@ -1,4 +1,4 @@
-import { ScorerResult } from '../scorer';
+import { ScoreResult } from '../scorer';
 
 export interface Insight {
   category: string;

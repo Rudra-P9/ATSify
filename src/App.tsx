@@ -418,7 +418,7 @@ function ScannerSection({ onResults }: { onResults: (results: ATSResult[], resum
       const doc = await parseDocument(file);
       const text = doc.rawText;
       setProgress(50);
-      const response = await analyzeResume(text, jobDescription);
+      const response = await analyzeResume(doc, jobDescription);
       setProgress(90);
       setTimeout(() => {
         onResults(response.results, text, jobDescription, response.metadata);
@@ -838,20 +838,24 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
             </h3>
             <div className="space-y-4">
                {scan.results[0].suggestions.map((s, idx) => (
-                 <div key={idx} className="bg-[#050507] p-5 rounded-2xl border border-white/5 flex gap-4 items-center">
-                    <div className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0 text-white/50 text-xs font-black">
+                 <div key={idx} className="bg-[#050507] p-5 rounded-2xl border border-white/5 flex gap-4 items-start">
+                    <div className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0 text-white/50 text-xs font-black mt-1">
                        {idx + 1}
                     </div>
-                    <div className="flex-1 space-y-1">
-                       <p className="text-sm font-bold text-white">{s.text}</p>
-                       <p className="text-[9px] font-black text-white/30 uppercase tracking-widest">Platforms: {s.platforms.join(', ')}</p>
+                    <div className="flex-1 space-y-2">
+                       <p className="text-sm font-bold text-white">{s.summary}</p>
+                       <ul className="text-xs text-white/60 space-y-1 list-disc pl-4">
+                         {s.details.map((detail, dIdx) => <li key={dIdx}>{detail}</li>)}
+                       </ul>
+                       <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pt-2">Platforms: {s.platforms.join(', ')}</p>
                     </div>
                     <div className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-md border",
-                      s.priority === 'HIGH' ? "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20" :
-                      s.priority === 'MEDIUM' ? "bg-[#eab308]/10 text-[#eab308] border-[#eab308]/20" :
-                      "bg-white/5 text-white/40 border-white/10"
+                      s.impact === 'critical' ? "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20" :
+                      s.impact === 'high' ? "bg-[#f97316]/10 text-[#f97316] border-[#f97316]/20" :
+                      s.impact === 'medium' ? "bg-[#eab308]/10 text-[#eab308] border-[#eab308]/20" :
+                      "bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20"
                     )}>
-                       {s.priority} PRIORITY
+                       {s.impact} IMPACT
                     </div>
                  </div>
                ))}

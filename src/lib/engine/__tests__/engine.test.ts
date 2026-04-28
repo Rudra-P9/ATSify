@@ -111,8 +111,6 @@ describe('runDeterministicEngine', () => {
       expect(bd.experience.score).toBeLessThanOrEqual(100);
       expect(bd.education.score).toBeGreaterThanOrEqual(0);
       expect(bd.education.score).toBeLessThanOrEqual(100);
-      expect(bd.quantification.score).toBeGreaterThanOrEqual(0);
-      expect(bd.quantification.score).toBeLessThanOrEqual(100);
     }
   });
 
@@ -166,32 +164,18 @@ describe('runDeterministicEngine', () => {
     expect(typeof meta.checkmarks.images).toBe('boolean');
   });
 
-  it('each result has suggestions and focusAreas arrays', () => {
+  it('each result has suggestions array', () => {
     const response = runDeterministicEngine(SAMPLE_RESUME, SAMPLE_JD);
     for (const result of response.results) {
       expect(Array.isArray(result.suggestions)).toBe(true);
-      expect(Array.isArray(result.focusAreas)).toBe(true);
-      expect(result.focusAreas).toHaveLength(6);
     }
   });
 
-  it('focusArea scores are within [0, 100]', () => {
-    const response = runDeterministicEngine(SAMPLE_RESUME, SAMPLE_JD);
-    for (const result of response.results) {
-      for (const fa of result.focusAreas) {
-        expect(fa.score).toBeGreaterThanOrEqual(0);
-        expect(fa.score).toBeLessThanOrEqual(100);
-        expect(fa.platformAvg).toBeGreaterThanOrEqual(0);
-        expect(fa.platformAvg).toBeLessThanOrEqual(100);
-      }
-    }
-  });
-
-  it('suggestion priorities are HIGH, MEDIUM, or LOW', () => {
+  it('suggestion impacts are critical, high, medium, or low', () => {
     const response = runDeterministicEngine(SAMPLE_RESUME, SAMPLE_JD);
     for (const result of response.results) {
       for (const sug of result.suggestions) {
-        expect(['HIGH', 'MEDIUM', 'LOW']).toContain(sug.priority);
+        expect(['critical', 'high', 'medium', 'low']).toContain(sug.impact);
       }
     }
   });

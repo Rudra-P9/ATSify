@@ -136,51 +136,32 @@ function buildSuggestions(
 ): ATSResult['suggestions'] {
   const suggestions: ATSResult['suggestions'] = [];
 
-  const add = (text: string, priority: 'HIGH' | 'MEDIUM' | 'LOW') =>
-    suggestions.push({ text, priority, platforms: [pc.platform.name] });
+  const add = (summary: string, impact: 'critical' | 'high' | 'medium' | 'low') =>
+    suggestions.push({ summary, details: [summary], impact, platforms: [pc.platform.name] });
 
   const [d1, d2, d3, d4, d5, d6] = pc.dims;
 
-  if (d1 < 50) add('Fix formatting: remove multi-column layouts, tables, or images that ATS cannot parse', 'HIGH');
-  else if (d1 < 70) add('Reduce use of special characters and ensure consistent bullet formatting', 'MEDIUM');
+  if (d1 < 50) add('Fix formatting: remove multi-column layouts, tables, or images that ATS cannot parse', 'critical');
+  else if (d1 < 70) add('Reduce use of special characters and ensure consistent bullet formatting', 'medium');
 
-  if (d2 < 40) add('Significantly expand keyword alignment with the job description', 'HIGH');
-  else if (d2 < 65) add('Add more role-specific keywords from the job description', 'MEDIUM');
-  else if (d2 < 80) add('Fine-tune keyword placement to match exact phrasing in the JD', 'LOW');
+  if (d2 < 40) add('Significantly expand keyword alignment with the job description', 'critical');
+  else if (d2 < 65) add('Add more role-specific keywords from the job description', 'medium');
+  else if (d2 < 80) add('Fine-tune keyword placement to match exact phrasing in the JD', 'low');
 
   if (d3 < 60) {
     const mis = pc.d3.missing;
-    if (mis.length > 0) add(`Add missing sections: ${mis.join(', ')}`, 'HIGH');
-  } else if (d3 < 80) add('Consider adding a Summary or Certifications section for completeness', 'MEDIUM');
+    if (mis.length > 0) add(`Add missing sections: ${mis.join(', ')}`, 'critical');
+  } else if (d3 < 80) add('Consider adding a Summary or Certifications section for completeness', 'medium');
 
-  if (d4 < 50) add('Strengthen experience bullets with action verbs and measurable achievements', 'HIGH');
-  else if (d4 < 70) add('Add more quantified achievements (numbers, percentages, dollar amounts)', 'MEDIUM');
+  if (d4 < 50) add('Strengthen experience bullets with action verbs and measurable achievements', 'critical');
+  else if (d4 < 70) add('Add more quantified achievements (numbers, percentages, dollar amounts)', 'medium');
 
-  if (d5 < 50) add('Ensure education section clearly states degree, institution, and graduation year', 'MEDIUM');
+  if (d5 < 50) add('Ensure education section clearly states degree, institution, and graduation year', 'medium');
 
-  if (d6 < 30) add('Add quantified results to at least 30% of your experience bullets', 'HIGH');
-  else if (d6 < 50) add('Increase the proportion of bullet points with measurable outcomes', 'MEDIUM');
+  if (d6 < 30) add('Add quantified results to at least 30% of your experience bullets', 'high');
+  else if (d6 < 50) add('Increase the proportion of bullet points with measurable outcomes', 'medium');
 
   return suggestions;
-}
-
-// ---------------------------------------------------------------------------
-// focusAreas builder (requires all platform results to compute platformAvg)
-// ---------------------------------------------------------------------------
-
-function buildFocusAreas(
-  pc: PlatformComputed,
-  allPlatformDims: Array<[number, number, number, number, number, number]>,
-): ATSResult['focusAreas'] {
-  const labels = ['Formatting', 'Keywords', 'Sections', 'Experience', 'Education', 'Quantification'];
-  return labels.map((label, i) => {
-    const platformAvg = allPlatformDims.reduce((sum, dims) => sum + dims[i], 0) / allPlatformDims.length;
-    return {
-      label,
-      score: Math.round(pc.dims[i]),
-      platformAvg: Math.round(platformAvg),
-    };
-  });
 }
 
 // ---------------------------------------------------------------------------
@@ -226,14 +207,12 @@ export function computeAllPlatforms(
     overallScore: Math.round(pc.overallScore),
     passesFilter: pc.overallScore >= pc.platform.passing,
     breakdown: {
-      formatting:   { score: Math.round(pc.d1.score), issues: pc.d1.issues },
-      keywordMatch: { score: Math.round(pc.d2.score), matched: pc.d2.matched, missing: pc.d2.missing, synonyms: pc.d2.synonyms },
+      formatting:   { score: Math.round(pc.d1.score), issues: pc.d1.issues, details: pc.d1.issues },
+      keywordMatch: { score: Math.round(pc.d2.score), matched: pc.d2.matched, missing: pc.d2.missing, synonymMatched: pc.d2.synonyms },
       sections:     { score: Math.round(pc.d3.score), present: pc.d3.present, missing: pc.d3.missing },
       experience:   { score: Math.round(pc.d4.score), highlights: pc.d4.highlights, quantifiedBullets: pc.d4.quantifiedBullets, totalBullets: pc.d4.totalBullets, actionVerbCount: pc.d4.actionVerbCount },
-      education:    { score: Math.round(pc.d5.score), notes: pc.d5.notes },
-      quantification: { score: Math.round(pc.d6.score), ratio: pc.d6.ratio },
+      education:    { score: Math.round(pc.d5.score), notes: pc.d5.notes }
     },
-    suggestions: buildSuggestions(pc),
-    focusAreas:  buildFocusAreas(pc, allDims),
+    suggestions: buildSuggestions(pc)
   }));
 }

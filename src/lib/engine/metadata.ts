@@ -4,18 +4,18 @@ import type { ResumeMetadata } from '../gemini';
 // Known section heading patterns (name → list of recognised header strings)
 // ---------------------------------------------------------------------------
 const SECTION_PATTERNS: Array<{ name: string; patterns: string[] }> = [
-  { name: 'contact',         patterns: ['contact', 'contact information', 'personal information', 'personal details', 'contact details'] },
-  { name: 'summary',         patterns: ['summary', 'professional summary', 'profile', 'objective', 'career objective', 'about me', 'overview'] },
-  { name: 'experience',      patterns: ['experience', 'work experience', 'professional experience', 'employment', 'work history', 'career history', 'employment history'] },
-  { name: 'education',       patterns: ['education', 'academic background', 'academic history', 'qualifications', 'academic qualifications'] },
-  { name: 'skills',          patterns: ['skills', 'technical skills', 'core competencies', 'competencies', 'expertise', 'technologies', 'tools'] },
-  { name: 'certifications',  patterns: ['certifications', 'certificates', 'credentials', 'licenses', 'certification'] },
-  { name: 'projects',        patterns: ['projects', 'personal projects', 'key projects', 'project experience', 'portfolio'] },
-  { name: 'awards',          patterns: ['awards', 'achievements', 'honors', 'accomplishments', 'recognitions'] },
-  { name: 'publications',    patterns: ['publications', 'papers', 'research', 'articles'] },
-  { name: 'volunteer',       patterns: ['volunteer', 'volunteering', 'community service', 'community involvement'] },
-  { name: 'languages',       patterns: ['languages', 'spoken languages'] },
-  { name: 'references',      patterns: ['references', 'referees'] },
+  { name: 'contact', patterns: ['contact', 'contact information', 'personal information', 'personal details', 'contact details'] },
+  { name: 'summary', patterns: ['summary', 'professional summary', 'profile', 'objective', 'career objective', 'about me', 'overview'] },
+  { name: 'experience', patterns: ['experience', 'work experience', 'professional experience', 'employment', 'work history', 'career history', 'employment history'] },
+  { name: 'education', patterns: ['education', 'academic background', 'academic history', 'qualifications', 'academic qualifications'] },
+  { name: 'skills', patterns: ['skills', 'technical skills', 'core competencies', 'competencies', 'expertise', 'technologies', 'tools'] },
+  { name: 'certifications', patterns: ['certifications', 'certificates', 'credentials', 'licenses', 'certification'] },
+  { name: 'projects', patterns: ['projects', 'personal projects', 'key projects', 'project experience', 'portfolio'] },
+  { name: 'awards', patterns: ['awards', 'achievements', 'honors', 'accomplishments', 'recognitions'] },
+  { name: 'publications', patterns: ['publications', 'papers', 'research', 'articles'] },
+  { name: 'volunteer', patterns: ['volunteer', 'volunteering', 'community service', 'community involvement'] },
+  { name: 'languages', patterns: ['languages', 'spoken languages'] },
+  { name: 'references', patterns: ['references', 'referees'] },
 ];
 
 // Common technical + professional skills used for heuristic extraction
@@ -39,9 +39,9 @@ const COMMON_SKILLS: string[] = [
 
 const DEGREE_PATTERNS: Array<{ label: string; patterns: RegExp }> = [
   { label: 'PhD / Doctorate', patterns: /\b(phd|ph\.d|doctor(ate)?)\b/i },
-  { label: 'Master\'s',       patterns: /\b(m\.s|ms|m\.a|ma|master|mba|m\.eng|msc)\b/i },
-  { label: 'Bachelor\'s',     patterns: /\b(b\.s|bs|b\.a|ba|bachelor|b\.eng|bsc|b\.tech|btech)\b/i },
-  { label: 'Associate\'s',    patterns: /\b(associate|a\.s|a\.a)\b/i },
+  { label: 'Master\'s', patterns: /\b(m\.s|ms|m\.a|ma|master|mba|m\.eng|msc)\b/i },
+  { label: 'Bachelor\'s', patterns: /\b(b\.s|bs|b\.a|ba|bachelor|b\.eng|bsc|b\.tech|btech)\b/i },
+  { label: 'Associate\'s', patterns: /\b(associate|a\.s|a\.a)\b/i },
 ];
 
 // ---------------------------------------------------------------------------
@@ -60,8 +60,8 @@ export function extractMetadata(resumeText: string): ResumeMetadata {
   const contactInfo = extractContactInfo(resumeText);
   const checkmarks = {
     multiColumn: detectMultiColumn(lines),
-    tables:      detectTables(lines),
-    images:      detectImages(lower),
+    tables: detectTables(lines),
+    images: detectImages(lower),
   };
 
   return { wordCount, sections, skills, positions, education, contactInfo, checkmarks };
@@ -125,17 +125,17 @@ function extractEducation(text: string): string[] {
 }
 
 function extractContactInfo(text: string): ResumeMetadata['contactInfo'] {
-  const emailMatch   = text.match(/\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}\b/);
-  const phoneMatch   = text.match(/(\+?1[\s.\-]?)?(\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4})/);
+  const emailMatch = text.match(/\b[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}\b/);
+  const phoneMatch = text.match(/(\+?1[\s.\-]?)?(\(?\d{3}\)?[\s.\-]?\d{3}[\s.\-]?\d{4})/);
   const linkedinMatch = text.match(/linkedin\.com\/in\/[a-zA-Z0-9\-_%]+/i);
   // City, ST pattern or City, Country
   const locationMatch = text.match(/\b([A-Z][a-zA-Z\s]{1,20},\s*(?:[A-Z]{2}|[A-Z][a-zA-Z\s]{2,15}))\b/);
 
   return {
-    email:    emailMatch?.[0],
-    phone:    phoneMatch?.[0],
-    linkedin: linkedinMatch?.[0],
-    location: locationMatch?.[0],
+    email: emailMatch?.[0] || null,
+    phone: phoneMatch?.[0] || null,
+    linkedin: linkedinMatch?.[0] || null,
+    location: locationMatch?.[0] || null,
   };
 }
 

@@ -12,10 +12,10 @@ export interface ResumeMetadata {
   positions: number;
   education: string[];
   contactInfo: {
-    email?: string;
-    phone?: string;
-    linkedin?: string;
-    location?: string;
+    email: string | null;
+    phone: string | null;
+    linkedin: string | null;
+    location: string | null;
   };
   checkmarks: {
     multiColumn: boolean;
@@ -109,7 +109,7 @@ export async function analyzeResume(doc: ParsedDocument, jobDescription?: string
       const prompt = buildFullScoringPrompt(doc.rawText, jobDescription);
 
       const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
+        model: "gemini-1.5-flash",
         contents: prompt,
         config: {
           responseMimeType: "application/json",
@@ -120,12 +120,12 @@ export async function analyzeResume(doc: ParsedDocument, jobDescription?: string
 
       if (!response.text) throw new Error("No response from AI");
       const parsed = JSON.parse(response.text.trim());
-      
+
       // Basic schema validation: must have exactly 6 results
       if (!parsed?.results || parsed.results.length !== 6) {
         throw new Error("Gemini response did not contain exactly 6 results");
       }
-      
+
       return {
         results: parsed.results as ATSResult[],
         metadata
@@ -140,4 +140,3 @@ export async function analyzeResume(doc: ParsedDocument, jobDescription?: string
   // wait, runDeterministicEngine requires `resumeText`. We can just call it with doc.rawText
   return runDeterministicEngine(doc.rawText, jobDescription);
 }
-

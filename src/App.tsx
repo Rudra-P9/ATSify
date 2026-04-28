@@ -5,14 +5,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { 
-  collection, 
-  query, 
-  where, 
-  orderBy, 
-  getDocs, 
-  addDoc, 
-  deleteDoc, 
+import {
+  collection,
+  query,
+  where,
+  orderBy,
+  getDocs,
+  addDoc,
+  deleteDoc,
   doc,
   serverTimestamp,
   Timestamp
@@ -21,15 +21,15 @@ import { auth, signInWithGoogle, db } from './lib/firebase';
 import { parseDocument } from './lib/parser';
 import { analyzeResume, ATSResult, ResumeMetadata, AnalysisResponse } from './lib/gemini';
 import { cn, formatDate } from './lib/utils';
-import { 
-  FileText, 
-  Upload, 
-  History as HistoryIcon, 
-  User as UserIcon, 
-  LogOut, 
-  ShieldCheck, 
-  X, 
-  ChevronRight, 
+import {
+  FileText,
+  Upload,
+  History as HistoryIcon,
+  User as UserIcon,
+  LogOut,
+  ShieldCheck,
+  X,
+  ChevronRight,
   AlertCircle,
   Search,
   CheckCircle2,
@@ -226,7 +226,7 @@ export default function App() {
                 <div className="w-6 h-6 bg-[#6366f1] rounded"></div>
                 <span className="text-lg font-bold tracking-tighter text-white">ATS.SCREENER</span>
               </div>
-              <button 
+              <button
                 onClick={signInWithGoogle}
                 className="bg-[#6366f1] hover:bg-[#6366f1]/90 text-white px-6 py-2.5 rounded-xl text-sm font-bold transition-all shadow-lg shadow-[#6366f1]/20 active:scale-95"
               >
@@ -265,7 +265,7 @@ export default function App() {
         </main>
 
         <footer className="w-full py-10 px-8 text-white/20 text-[10px] uppercase font-bold tracking-widest border-t border-white/[0.03] text-center">
-            &copy; 2026 ATS.SCREENER &bull; Private Browser-Native Engine
+          &copy; 2026 ATS.SCREENER &bull; Private Browser-Native Engine
         </footer>
       </div>
     </div>
@@ -290,13 +290,13 @@ function LandingSection({ onGetStarted }: { onGetStarted: () => void }) {
           Get an instant ATS score and actionable feedback on your resume. Simulate the algorithms of Workday, Taleo, and Greenhouse in seconds.
         </p>
         <div className="flex flex-col sm:flex-row justify-center gap-4 pt-6">
-          <button 
+          <button
             onClick={onGetStarted}
             className="bg-[#6366f1] text-white px-10 py-5 rounded-2xl font-bold flex items-center justify-center gap-2 hover:bg-[#6366f1]/90 transition-all active:scale-95 shadow-xl shadow-[#6366f1]/20"
           >
             Upload Resume Now <ArrowRight className="w-5 h-5" />
           </button>
-          <button 
+          <button
             onClick={() => document.getElementById('how-it-works')?.scrollIntoView({ behavior: 'smooth' })}
             className="px-10 py-5 rounded-2xl font-bold text-white transition-all border border-white/10 hover:bg-white/5"
           >
@@ -359,39 +359,39 @@ function LandingSection({ onGetStarted }: { onGetStarted: () => void }) {
         <div className="relative">
           <div className="absolute -inset-4 bg-gradient-to-tr from-[#6366f1]/20 to-transparent blur-2xl rounded-[3rem]" />
           <div className="glass p-8 rounded-[3rem] border-white/10 relative overflow-hidden">
-             <div className="flex items-center justify-between mb-8">
-               <div className="flex gap-2">
-                  <div className="w-8 h-8 rounded-full bg-red-400" />
-                  <div className="w-8 h-8 rounded-full bg-yellow-400" />
-                  <div className="w-8 h-8 rounded-full bg-green-400" />
-               </div>
-               <div className="text-[10px] font-black text-white/20 uppercase tracking-widest leading-none">Intelligence.Report</div>
-             </div>
-             <div className="space-y-6">
-                <div className="h-6 w-3/4 bg-white/10 rounded-xl" />
-                <div className="h-24 w-full bg-[#6366f1]/10 rounded-[2rem] border border-[#6366f1]/20 flex items-center justify-center">
-                   <div className="text-4xl font-black text-white">84%</div>
-                </div>
-                <div className="space-y-3">
-                   <div className="h-2 w-full bg-white/5 rounded-full" />
-                   <div className="h-2 w-2/3 bg-white/5 rounded-full" />
-                </div>
-             </div>
+            <div className="flex items-center justify-between mb-8">
+              <div className="flex gap-2">
+                <div className="w-8 h-8 rounded-full bg-red-400" />
+                <div className="w-8 h-8 rounded-full bg-yellow-400" />
+                <div className="w-8 h-8 rounded-full bg-green-400" />
+              </div>
+              <div className="text-[10px] font-black text-white/20 uppercase tracking-widest leading-none">Intelligence.Report</div>
+            </div>
+            <div className="space-y-6">
+              <div className="h-6 w-3/4 bg-white/10 rounded-xl" />
+              <div className="h-24 w-full bg-[#6366f1]/10 rounded-[2rem] border border-[#6366f1]/20 flex items-center justify-center">
+                <div className="text-4xl font-black text-white">84%</div>
+              </div>
+              <div className="space-y-3">
+                <div className="h-2 w-full bg-white/5 rounded-full" />
+                <div className="h-2 w-2/3 bg-white/5 rounded-full" />
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       <section className="text-center space-y-10 py-20 relative">
-         <div className="space-y-4">
-            <h2 className="text-5xl font-black text-white tracking-tighter">Ready to land that interview?</h2>
-            <p className="text-lg text-white/40 font-medium">Join thousands of job seekers who outsmarted the machines.</p>
-         </div>
-         <button 
-           onClick={onGetStarted}
-           className="bg-white text-black px-12 py-6 rounded-3xl font-black uppercase tracking-[0.2em] text-sm hover:scale-105 transition-all shadow-2xl shadow-white/5"
-         >
-           Upload Your Resume
-         </button>
+        <div className="space-y-4">
+          <h2 className="text-5xl font-black text-white tracking-tighter">Ready to land that interview?</h2>
+          <p className="text-lg text-white/40 font-medium">Join thousands of job seekers who outsmarted the machines.</p>
+        </div>
+        <button
+          onClick={onGetStarted}
+          className="bg-white text-black px-12 py-6 rounded-3xl font-black uppercase tracking-[0.2em] text-sm hover:scale-105 transition-all shadow-2xl shadow-white/5"
+        >
+          Upload Your Resume
+        </button>
       </section>
     </div>
   );
@@ -402,7 +402,10 @@ function ScannerSection({ onResults }: { onResults: (results: ATSResult[], resum
   const [jobDescription, setJobDescription] = useState('');
   const [isScanning, setIsScanning] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [completedPlatforms, setCompletedPlatforms] = useState<string[]>([]);
   const [error, setError] = useState('');
+
+  const PLATFORMS = ['WORKDAY', 'TALEO', 'ICIMS', 'GREENHOUSE', 'LEVER', 'S.FACTORS'];
 
   const handleScan = async () => {
     if (!file) {
@@ -411,19 +414,45 @@ function ScannerSection({ onResults }: { onResults: (results: ATSResult[], resum
     }
     setError('');
     setIsScanning(true);
-    setProgress(5);
+    setProgress(0);
+    setCompletedPlatforms([]);
+
+    // We use a combination of real steps and simulated smooth progress
+    let currentProgress = 0;
+    const progressInterval = setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 95) return prev;
+        const jump = Math.random() * 2;
+        currentProgress = prev + jump;
+
+        // Mark platforms as completed based on progress thresholds
+        const completedIdx = Math.floor((currentProgress / 100) * PLATFORMS.length);
+        if (completedIdx > completedPlatforms.length) {
+          setCompletedPlatforms(PLATFORMS.slice(0, completedIdx));
+        }
+
+        return currentProgress;
+      });
+    }, 150);
 
     try {
-      setProgress(25);
+      // Step 1: Parsing
       const doc = await parseDocument(file);
       const text = doc.rawText;
-      setProgress(50);
+
+      // Step 2: Analysis (Gemini or Fallback)
       const response = await analyzeResume(doc, jobDescription);
-      setProgress(90);
+
+      // Step 3: Complete
+      clearInterval(progressInterval);
+      setProgress(100);
+      setCompletedPlatforms(PLATFORMS);
+
       setTimeout(() => {
         onResults(response.results, text, jobDescription, response.metadata);
-      }, 500);
+      }, 800);
     } catch (err: any) {
+      clearInterval(progressInterval);
       setError(err.message || "Engine error. Please try again.");
       setIsScanning(false);
     }
@@ -446,7 +475,7 @@ function ScannerSection({ onResults }: { onResults: (results: ATSResult[], resum
 
       {isScanning ? (
         <div className="glass p-16 rounded-[2.5rem] flex flex-col items-center justify-center space-y-10 border-[#6366f1]/20 shadow-2xl shadow-[#6366f1]/5 relative overflow-hidden">
-          <div className="absolute top-0 left-0 h-1 bg-[#6366f1] transition-all duration-500" style={{ width: `${progress}%` }} />
+          <div className="absolute top-0 left-0 h-1 bg-gradient-to-r from-[#6366f1] to-[#10b981] transition-all duration-300" style={{ width: `${progress}%` }} />
           <div className="relative">
             <div className="w-24 h-24 rounded-full border border-white/5 flex items-center justify-center">
               <FileText className="w-10 h-10 text-[#6366f1] animate-pulse" />
@@ -456,53 +485,55 @@ function ScannerSection({ onResults }: { onResults: (results: ATSResult[], resum
           <div className="text-center space-y-3">
             <h3 className="text-2xl font-black text-white">Analyzing across 6 ATS platforms</h3>
             <p className="text-[#6366f1] font-bold text-sm tracking-widest uppercase">
-              {progress < 30 ? 'Extracting Text...' : progress < 60 ? 'Analyzing keywords...' : 'Simulating platform logic...'}
+              {progress < 25 ? 'Extracting Text...' : progress < 70 ? 'Analyzing keywords...' : 'Simulating platform logic...'}
             </p>
           </div>
-          <div className="flex gap-3">
-            {['WORKDAY', 'TALEO', 'ICIMS', 'GREENHOUSE', 'LEVER', 'S.FACTORS'].map((platform, idx) => (
-              <div 
-                key={platform} 
+          <div className="flex flex-wrap justify-center gap-3">
+            {PLATFORMS.map((platform) => (
+              <div
+                key={platform}
                 className={cn(
-                  "px-4 py-2 rounded-xl text-[10px] font-black tracking-widest border transition-all duration-500",
-                  progress > (idx + 1) * 15 ? "bg-[#10b981]/10 border-[#10b981]/40 text-[#10b981]" : "bg-white/5 border-white/5 text-white/20"
+                  "px-4 py-2 rounded-xl text-[10px] font-black tracking-widest border transition-all duration-700",
+                  completedPlatforms.includes(platform)
+                    ? "bg-[#10b981]/10 border-[#10b981]/40 text-[#10b981]"
+                    : "bg-white/5 border-white/5 text-white/20"
                 )}
               >
-                {platform}
+                {completedPlatforms.includes(platform) ? <span className="flex items-center gap-1.5"><Check className="w-3 h-3" /> {platform}</span> : platform}
               </div>
             ))}
           </div>
           <div className="text-white/20 text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
-            <Clock className="w-3 h-3" /> Processing internally
+            <Clock className="w-3 h-3" /> Real-time simulation active
           </div>
         </div>
       ) : (
         <div className="grid gap-8">
-          <div 
+          <div
             className={cn(
               "p-12 rounded-[2.5rem] border-2 border-dashed flex flex-col items-center justify-center gap-6 transition-all group relative overflow-hidden",
               file ? "bg-[#6366f1]/5 border-[#6366f1]/40" : "bg-white/[0.02] border-white/10 hover:border-white/20 hover:bg-white/[0.03]"
             )}
             onClick={() => document.getElementById('resume-upload')?.click()}
           >
-            <input 
-              type="file" 
-              id="resume-upload" 
-              className="hidden" 
-              accept=".pdf,.docx" 
-              onChange={(e) => setFile(e.target.files?.[0] || null)} 
+            <input
+              type="file"
+              id="resume-upload"
+              className="hidden"
+              accept=".pdf,.docx"
+              onChange={(e) => setFile(e.target.files?.[0] || null)}
             />
             {file ? (
-               <div className="flex items-center gap-4 p-6 bg-white/[0.05] rounded-3xl border border-[#10b981]/20">
-                  <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center shadow-lg">
-                    <FileText className="w-6 h-6 text-[#10b981]" />
-                  </div>
-                  <div className="text-left">
-                    <p className="text-lg font-bold text-white">{file.name}</p>
-                    <p className="text-white/20 text-xs font-bold uppercase tracking-widest">{(file.size / 1024).toFixed(0)} KB &bull; Verified</p>
-                  </div>
-                  <CheckCircle2 className="w-6 h-6 text-[#10b981] ml-4" />
-               </div>
+              <div className="flex items-center gap-4 p-6 bg-white/[0.05] rounded-3xl border border-[#10b981]/20">
+                <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center shadow-lg">
+                  <FileText className="w-6 h-6 text-[#10b981]" />
+                </div>
+                <div className="text-left">
+                  <p className="text-lg font-bold text-white">{file.name}</p>
+                  <p className="text-white/20 text-xs font-bold uppercase tracking-widest">{(file.size / 1024).toFixed(0)} KB &bull; Verified</p>
+                </div>
+                <CheckCircle2 className="w-6 h-6 text-[#10b981] ml-4" />
+              </div>
             ) : (
               <>
                 <div className="w-20 h-20 bg-white/[0.03] rounded-3xl flex items-center justify-center group-hover:scale-110 transition-transform">
@@ -516,7 +547,7 @@ function ScannerSection({ onResults }: { onResults: (results: ATSResult[], resum
             )}
           </div>
           <div className="space-y-4">
-            <textarea 
+            <textarea
               value={jobDescription}
               onChange={(e) => setJobDescription(e.target.value)}
               placeholder="Paste requirements to sync skills..."
@@ -528,7 +559,7 @@ function ScannerSection({ onResults }: { onResults: (results: ATSResult[], resum
               <AlertCircle className="w-5 h-5" /> {error}
             </motion.div>
           )}
-          <button 
+          <button
             onClick={handleScan}
             disabled={isScanning || !file}
             className={cn(
@@ -547,8 +578,8 @@ function ScannerSection({ onResults }: { onResults: (results: ATSResult[], resum
 function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void }) {
   const avgScore = Math.round(scan.results.reduce((acc, r) => acc + r.overallScore, 0) / 6);
   const systemsPassed = scan.results.filter(r => r.passesFilter).length;
-  const weakestResult = scan.results.slice().sort((a,b) => a.overallScore - b.overallScore)[0] || scan.results[0];
-  
+  const weakestResult = scan.results.slice().sort((a, b) => a.overallScore - b.overallScore)[0] || scan.results[0];
+
   const getScoreColor = (score: number) => {
     if (score >= 80) return '#10b981';
     if (score >= 60) return '#eab308';
@@ -566,7 +597,7 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
   const handleExportPDF = async () => {
     const element = document.getElementById('report-content');
     if (!element) return;
-    
+
     setIsExporting(true);
     try {
       const imgData = await toPng(element, {
@@ -582,7 +613,7 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
       const imgProps = pdf.getImageProperties(imgData);
       const pdfWidth = pdf.internal.pageSize.getWidth();
       const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
-      
+
       pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
       pdf.save(`ATS_Screener_Report_${formatDate(scan.createdAt).replace(/ /g, '_')}.pdf`);
     } catch (err) {
@@ -598,7 +629,7 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
         <button onClick={onBack} className="text-white/40 hover:text-white flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all">
           <ChevronRight className="w-4 h-4 rotate-180" /> Back to Intelligence Dashboard
         </button>
-        <button 
+        <button
           onClick={handleExportPDF}
           disabled={isExporting}
           className={cn(
@@ -612,264 +643,264 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
       </div>
 
       <div id="report-content" className="space-y-8">
-         {/* 1. TOP SUMMARY HEADER */}
-         <div className="w-full bg-gradient-to-br from-[#0c0c11] to-[#12121a] rounded-[2rem] border border-white/5 p-8 flex flex-col lg:flex-row items-center justify-between gap-10 shadow-2xl relative overflow-hidden">
-            <div className="flex items-center gap-6 relative z-10">
-               <div className="text-8xl font-black leading-none" style={{ color: getScoreColor(avgScore) }}>{avgScore}</div>
-               <div className="space-y-1">
-                 <div className="text-xl font-bold tracking-widest uppercase" style={{ color: getScoreColor(avgScore) }}>
-                    {avgScore >= 80 ? 'Excellent' : avgScore >= 60 ? 'Good' : 'Weak'}
-                 </div>
-                 <div className="text-[10px] text-white/40 font-black tracking-widest uppercase">AVERAGE SCORE</div>
-               </div>
+        {/* 1. TOP SUMMARY HEADER */}
+        <div className="w-full bg-gradient-to-br from-[#0c0c11] to-[#12121a] rounded-[2rem] border border-white/5 p-8 flex flex-col lg:flex-row items-center justify-between gap-10 shadow-2xl relative overflow-hidden">
+          <div className="flex items-center gap-6 relative z-10">
+            <div className="text-8xl font-black leading-none" style={{ color: getScoreColor(avgScore) }}>{avgScore}</div>
+            <div className="space-y-1">
+              <div className="text-xl font-bold tracking-widest uppercase" style={{ color: getScoreColor(avgScore) }}>
+                {avgScore >= 80 ? 'Excellent' : avgScore >= 60 ? 'Good' : 'Weak'}
+              </div>
+              <div className="text-[10px] text-white/40 font-black tracking-widest uppercase">AVERAGE SCORE</div>
             </div>
-            
-            <div className="flex-1 w-full bg-white/[0.02] p-4 rounded-2xl flex items-center justify-between gap-2 border border-white/[0.05]">
-               {scan.results.map(r => (
-                  <div key={r.system} className="flex-1 flex flex-col gap-1 items-center">
-                    <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{r.system.substring(0,6)}</span>
-                    <div className="w-full h-[6px] bg-white/10 rounded-full overflow-hidden flex items-end">
-                      <div className="h-full rounded-full transition-all" style={{ width: `${r.overallScore}%`, backgroundColor: getScoreColor(r.overallScore) }} />
+          </div>
+
+          <div className="flex-1 w-full bg-white/[0.02] p-4 rounded-2xl flex items-center justify-between gap-2 border border-white/[0.05]">
+            {scan.results.map(r => (
+              <div key={r.system} className="flex-1 flex flex-col gap-1 items-center">
+                <span className="text-[9px] font-black text-white/40 uppercase tracking-widest">{r.system.substring(0, 6)}</span>
+                <div className="w-full h-[6px] bg-white/10 rounded-full overflow-hidden flex items-end">
+                  <div className="h-full rounded-full transition-all" style={{ width: `${r.overallScore}%`, backgroundColor: getScoreColor(r.overallScore) }} />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="flex flex-col items-end gap-3 relative z-10 shrink-0">
+            <div className="text-xl font-black text-white px-2">{systemsPassed}/{scan.results.length} Systems Passed</div>
+            <div className="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white uppercase tracking-widest">
+              [ General Readiness ]
+            </div>
+          </div>
+        </div>
+
+        {/* 2. PLATFORM CARDS GRID */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {scan.results.map(r => (
+            <div key={r.system} className="glass bg-[#08080b] p-6 rounded-[2rem] border border-white/5 hover:border-[#6366f1]/20 transition-all flex flex-col gap-6">
+              <div className="flex justify-between items-start">
+                <div>
+                  <h4 className="text-xl font-black text-white">{r.system}</h4>
+                  <p className="text-[9px] text-white/30 font-black uppercase tracking-widest">{r.vendor} INC.</p>
+                </div>
+                <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-black border-2 border-white/5 relative">
+                  <span style={{ color: getScoreColor(r.overallScore) }}>{r.overallScore}</span>
+                  <svg className="absolute inset-0 w-full h-full -rotate-90">
+                    <circle cx="22" cy="22" r="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/5" />
+                    <circle cx="22" cy="22" r="20" fill="none" stroke={getScoreColor(r.overallScore)} strokeWidth="2" strokeDasharray={125} strokeDashoffset={125 * (1 - r.overallScore / 100)} strokeLinecap="round" />
+                  </svg>
+                </div>
+              </div>
+
+              <div className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg self-start border",
+                r.overallScore >= 80 ? "bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20" :
+                  r.overallScore >= 60 ? "bg-[#eab308]/10 text-[#eab308] border-[#eab308]/20" :
+                    "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20"
+              )}>
+                {getStatusText(r.overallScore)}
+              </div>
+
+              <div className="space-y-3">
+                {[
+                  { l: 'Formatting', s: r.breakdown.formatting.score },
+                  { l: 'Keywords', s: r.breakdown.keywordMatch.score },
+                  { l: 'Sections', s: r.breakdown.sections.score },
+                  { l: 'Experience', s: r.breakdown.experience.score },
+                  { l: 'Education', s: r.breakdown.education.score }
+                ].map(bar => (
+                  <div key={bar.l} className="flex items-center gap-3">
+                    <span className="text-[10px] font-bold text-white/40 uppercase w-20">{bar.l}</span>
+                    <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full rounded-full" style={{ width: `${bar.s}%`, backgroundColor: getScoreColor(bar.s) }} />
+                    </div>
+                    <span className="text-[10px] font-black text-white/80 w-6 text-right">{bar.s}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div className="pt-4 border-t border-white/5 flex items-center justify-between mt-auto">
+                <div className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                  <span className="text-[#10b981]">{r.breakdown.keywordMatch.matched.length}</span> MATCHED
+                </div>
+                <div className="text-[10px] font-black uppercase tracking-widest text-white/40">
+                  <span className="text-[#ef4444]">{r.breakdown.keywordMatch.missing.length}</span> MISSING
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* 3 & 4. SIDE BY SIDE PANELS */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+
+          {/* 3. PRIORITY FOCUS AREAS (LEFT) */}
+          <div className="lg:col-span-5 glass p-8 rounded-[2.5rem] border-white/5 space-y-6 flex flex-col">
+            <div className="space-y-1">
+              <h3 className="text-xl font-black text-white flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-[#ef4444]" /> Priority Focus Areas
+              </h3>
+              <div className="text-[10px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2">
+                Filtered out by: <span className="bg-[#ef4444]/20 text-[#ef4444] px-2 py-0.5 rounded border border-[#ef4444]/30">{weakestResult.system}</span>
+              </div>
+            </div>
+
+            <div className="space-y-4 flex-1">
+              {[
+                { t: 'Keyword Coverage', d: `Missing: ${weakestResult.breakdown.keywordMatch.missing.slice(0, 3).join(', ') || 'N/A'}`, s: weakestResult.breakdown.keywordMatch.score, b: 60 },
+                { t: 'Experience Quality', d: `Action verbs: ${weakestResult.breakdown.experience.actionVerbCount} / Quantified: ${weakestResult.breakdown.experience.quantifiedBullets}`, s: weakestResult.breakdown.experience.score, b: 70 },
+                { t: 'Formatting & Parsing', d: `Issues: ${weakestResult.breakdown.formatting.issues[0] || 'Clean'}`, s: weakestResult.breakdown.formatting.score, b: 80 },
+                { t: 'Section Structure', d: `Missing: ${weakestResult.breakdown.sections.missing.join(', ') || 'None'}`, s: weakestResult.breakdown.sections.score, b: 100 },
+                { t: 'Education', d: `Check: ${weakestResult.breakdown.education.notes[0] || 'Valid'}`, s: weakestResult.breakdown.education.score, b: 50 },
+              ].map((focus, idx) => (
+                <div key={focus.t} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl flex items-center gap-4 group hover:bg-white/[0.05] transition-all">
+                  <div className="w-6 h-6 rounded-full bg-white/10 text-white/50 flex items-center justify-center text-[10px] font-black shrink-0">{idx + 1}</div>
+                  <div className="flex-1 overflow-hidden space-y-2">
+                    <div className="flex justify-between text-xs font-bold text-white">
+                      {focus.t} <span className="text-white/60">{focus.s}</span>
+                    </div>
+                    <p className="text-[10px] text-white/40 truncate uppercase tracking-widest font-bold">{focus.d}</p>
+                    <div className="w-full h-1 bg-white/5 rounded-full relative overflow-hidden">
+                      <div className="h-full rounded-full transition-all" style={{ width: `${focus.s}%`, backgroundColor: getScoreColor(focus.s) }} />
+                      <div className="absolute top-0 bottom-0 w-0.5 bg-white/80" style={{ left: `${focus.b}%` }} title={`${weakestResult.system} baseline: ${focus.b}`} />
                     </div>
                   </div>
-               ))}
-            </div>
-
-            <div className="flex flex-col items-end gap-3 relative z-10 shrink-0">
-               <div className="text-xl font-black text-white px-2">{systemsPassed}/{scan.results.length} Systems Passed</div>
-               <div className="px-6 py-2 bg-white/5 border border-white/10 rounded-xl text-xs font-bold text-white uppercase tracking-widest">
-                  [ General Readiness ]
-               </div>
-            </div>
-         </div>
-
-         {/* 2. PLATFORM CARDS GRID */}
-         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-           {scan.results.map(r => (
-             <div key={r.system} className="glass bg-[#08080b] p-6 rounded-[2rem] border border-white/5 hover:border-[#6366f1]/20 transition-all flex flex-col gap-6">
-                <div className="flex justify-between items-start">
-                   <div>
-                     <h4 className="text-xl font-black text-white">{r.system}</h4>
-                     <p className="text-[9px] text-white/30 font-black uppercase tracking-widest">{r.vendor} INC.</p>
-                   </div>
-                   <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-black border-2 border-white/5 relative">
-                      <span style={{ color: getScoreColor(r.overallScore) }}>{r.overallScore}</span>
-                      <svg className="absolute inset-0 w-full h-full -rotate-90">
-                        <circle cx="22" cy="22" r="20" fill="none" stroke="currentColor" strokeWidth="2" className="text-white/5" />
-                        <circle cx="22" cy="22" r="20" fill="none" stroke={getScoreColor(r.overallScore)} strokeWidth="2" strokeDasharray={125} strokeDashoffset={125 * (1 - r.overallScore/100)} strokeLinecap="round" />
-                      </svg>
-                   </div>
                 </div>
-                
-                <div className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg self-start border", 
-                  r.overallScore >= 80 ? "bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20" : 
-                  r.overallScore >= 60 ? "bg-[#eab308]/10 text-[#eab308] border-[#eab308]/20" : 
-                  "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20"
-                )}>
-                   {getStatusText(r.overallScore)}
-                </div>
-
-                <div className="space-y-3">
-                   {[
-                     { l: 'Formatting', s: r.breakdown.formatting.score },
-                     { l: 'Keywords', s: r.breakdown.keywordMatch.score },
-                     { l: 'Sections', s: r.breakdown.sections.score },
-                     { l: 'Experience', s: r.breakdown.experience.score },
-                     { l: 'Education', s: r.breakdown.education.score }
-                   ].map(bar => (
-                     <div key={bar.l} className="flex items-center gap-3">
-                        <span className="text-[10px] font-bold text-white/40 uppercase w-20">{bar.l}</span>
-                        <div className="flex-1 h-1.5 bg-white/5 rounded-full overflow-hidden">
-                           <div className="h-full rounded-full" style={{ width: `${bar.s}%`, backgroundColor: getScoreColor(bar.s) }} />
-                        </div>
-                        <span className="text-[10px] font-black text-white/80 w-6 text-right">{bar.s}</span>
-                     </div>
-                   ))}
-                </div>
-
-                <div className="pt-4 border-t border-white/5 flex items-center justify-between mt-auto">
-                   <div className="text-[10px] font-black uppercase tracking-widest text-white/40">
-                     <span className="text-[#10b981]">{r.breakdown.keywordMatch.matched.length}</span> MATCHED
-                   </div>
-                   <div className="text-[10px] font-black uppercase tracking-widest text-white/40">
-                     <span className="text-[#ef4444]">{r.breakdown.keywordMatch.missing.length}</span> MISSING
-                   </div>
-                </div>
-             </div>
-           ))}
-         </div>
-
-         {/* 3 & 4. SIDE BY SIDE PANELS */}
-         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            
-            {/* 3. PRIORITY FOCUS AREAS (LEFT) */}
-            <div className="lg:col-span-5 glass p-8 rounded-[2.5rem] border-white/5 space-y-6 flex flex-col">
-               <div className="space-y-1">
-                 <h3 className="text-xl font-black text-white flex items-center gap-2">
-                   <AlertCircle className="w-5 h-5 text-[#ef4444]" /> Priority Focus Areas
-                 </h3>
-                 <div className="text-[10px] font-black uppercase tracking-widest text-white/40 flex items-center gap-2">
-                   Filtered out by: <span className="bg-[#ef4444]/20 text-[#ef4444] px-2 py-0.5 rounded border border-[#ef4444]/30">{weakestResult.system}</span>
-                 </div>
-               </div>
-
-               <div className="space-y-4 flex-1">
-                 {[
-                   { t: 'Keyword Coverage', d: `Missing: ${weakestResult.breakdown.keywordMatch.missing.slice(0, 3).join(', ') || 'N/A'}`, s: weakestResult.breakdown.keywordMatch.score, b: 60 },
-                   { t: 'Experience Quality', d: `Action verbs: ${weakestResult.breakdown.experience.actionVerbCount} / Quantified: ${weakestResult.breakdown.experience.quantifiedBullets}`, s: weakestResult.breakdown.experience.score, b: 70 },
-                   { t: 'Formatting & Parsing', d: `Issues: ${weakestResult.breakdown.formatting.issues[0] || 'Clean'}`, s: weakestResult.breakdown.formatting.score, b: 80 },
-                   { t: 'Section Structure', d: `Missing: ${weakestResult.breakdown.sections.missing.join(', ') || 'None'}`, s: weakestResult.breakdown.sections.score, b: 100 },
-                   { t: 'Education', d: `Check: ${weakestResult.breakdown.education.notes[0] || 'Valid'}`, s: weakestResult.breakdown.education.score, b: 50 },
-                 ].map((focus, idx) => (
-                   <div key={focus.t} className="bg-white/[0.02] border border-white/5 p-4 rounded-2xl flex items-center gap-4 group hover:bg-white/[0.05] transition-all">
-                      <div className="w-6 h-6 rounded-full bg-white/10 text-white/50 flex items-center justify-center text-[10px] font-black shrink-0">{idx + 1}</div>
-                      <div className="flex-1 overflow-hidden space-y-2">
-                        <div className="flex justify-between text-xs font-bold text-white">
-                           {focus.t} <span className="text-white/60">{focus.s}</span>
-                        </div>
-                        <p className="text-[10px] text-white/40 truncate uppercase tracking-widest font-bold">{focus.d}</p>
-                        <div className="w-full h-1 bg-white/5 rounded-full relative overflow-hidden">
-                           <div className="h-full rounded-full transition-all" style={{ width: `${focus.s}%`, backgroundColor: getScoreColor(focus.s) }} />
-                           <div className="absolute top-0 bottom-0 w-0.5 bg-white/80" style={{ left: `${focus.b}%` }} title={`${weakestResult.system} baseline: ${focus.b}`} />
-                        </div>
-                      </div>
-                   </div>
-                 ))}
-               </div>
+              ))}
             </div>
+          </div>
 
-            {/* 4. RESUME OVERVIEW (RIGHT) */}
-            <div className="lg:col-span-7 glass p-8 rounded-[2.5rem] border-white/5 space-y-8 flex flex-col">
-               <h3 className="text-xl font-black text-white flex items-center gap-2">
-                 <FileText className="w-5 h-5 text-[#6366f1]" /> Resume Overview
-               </h3>
-               
-               <div className="grid grid-cols-3 gap-3">
-                  {[
-                    { l: 'Words', v: scan.metadata.wordCount },
-                    { l: 'Page', v: 1 },
-                    { l: 'Sections', v: scan.metadata.sections.length },
-                    { l: 'Skills', v: scan.metadata.skills.length },
-                    { l: 'Positions', v: scan.metadata.positions },
-                    { l: 'Education', v: scan.metadata.education.length }
-                  ].map(stat => (
-                    <div key={stat.l} className="bg-white/[0.02] border border-white/5 p-3 rounded-2xl text-center flex items-center justify-center gap-2">
-                       <span className="text-xl font-black text-white">{stat.v}</span>
-                       <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">{stat.l}</span>
-                    </div>
-                  ))}
-               </div>
-
-               <div className="space-y-3">
-                  <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest">Detected Sections</h4>
-                  <div className="flex flex-wrap gap-2">
-                    {scan.metadata.sections.map(s => (
-                       <span key={s} className="px-3 py-1 bg-[#10b981]/10 text-[#10b981] text-[10px] font-black uppercase tracking-widest rounded-full border border-[#10b981]/20">
-                          {s}
-                       </span>
-                    ))}
-                  </div>
-               </div>
-
-               <div className="space-y-3">
-                  <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest">Extracted Skills</h4>
-                  <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-2 custom-scrollbar">
-                    {scan.metadata.skills.map(skill => (
-                       <span key={skill} className="px-3 py-1 bg-white/5 text-white/70 text-[10px] font-black uppercase tracking-widest rounded-full border border-white/10">
-                          {skill}
-                       </span>
-                    ))}
-                  </div>
-               </div>
-
-               <div className="flex flex-col md:flex-row gap-6">
-                 <div className="flex-1 space-y-2 text-sm text-white/60 font-medium bg-white/[0.01] p-4 rounded-2xl border border-white/5">
-                    <h4 className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-3">Contact Info</h4>
-                    <p className="flex items-center gap-2 truncate"><UserIcon className="w-4 h-4 text-white/30" /> Candidate</p>
-                    {scan.metadata.contactInfo.email && <p className="flex items-center gap-2 truncate"><Globe className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.email}</p>}
-                    {scan.metadata.contactInfo.phone && <p className="flex items-center gap-2 truncate"><ShieldCheck className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.phone}</p>}
-                    {scan.metadata.contactInfo.linkedin && <p className="flex items-center gap-2 truncate"><Building2 className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.linkedin}</p>}
-                 </div>
-                 <div className="flex-1 space-y-2 bg-white/[0.01] p-4 rounded-2xl border border-white/5 flex flex-col justify-end">
-                    {Object.entries(scan.metadata.checkmarks).map(([k, v]) => (
-                      <p key={k} className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase tracking-widest">
-                         {v ? <CheckCircle2 className="w-4 h-4 text-[#10b981]" /> : <XCircle className="w-4 h-4 text-white/20" />}
-                         {k.replace(/([A-Z])/g, ' $1')}
-                      </p>
-                    ))}
-                 </div>
-               </div>
-            </div>
-         </div>
-
-         {/* 5. KEYWORD ANALYSIS */}
-         <div className="glass p-8 rounded-[2.5rem] border-white/5 space-y-6">
+          {/* 4. RESUME OVERVIEW (RIGHT) */}
+          <div className="lg:col-span-7 glass p-8 rounded-[2.5rem] border-white/5 space-y-8 flex flex-col">
             <h3 className="text-xl font-black text-white flex items-center gap-2">
-              <Search className="w-5 h-5 text-white/40" /> Keyword Analysis — <span className="text-[#6366f1]">{scan.results[0].breakdown.keywordMatch.score}% Match Rate</span>
+              <FileText className="w-5 h-5 text-[#6366f1]" /> Resume Overview
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-               <div className="space-y-4">
-                 <h4 className="text-[10px] font-black text-[#10b981] uppercase tracking-widest">Matched Keywords</h4>
-                 <div className="flex flex-wrap gap-2">
-                   {scan.results[0].breakdown.keywordMatch.matched.map(kw => (
-                     <span key={kw} className="px-3 py-1.5 bg-[#10b981]/10 text-[#10b981] text-[10px] font-black uppercase tracking-widest rounded-lg border border-[#10b981]/20">
-                       {kw}
-                     </span>
-                   ))}
-                 </div>
-               </div>
-               <div className="space-y-4">
-                 <h4 className="text-[10px] font-black text-[#ef4444] uppercase tracking-widest">Missing Keywords</h4>
-                 <div className="flex flex-wrap gap-2">
-                   {scan.results[0].breakdown.keywordMatch.missing.map(kw => (
-                     <span key={kw} className="px-3 py-1.5 bg-[#ef4444]/10 text-[#ef4444] text-[10px] font-black uppercase tracking-widest rounded-lg border border-[#ef4444]/20">
-                       {kw}
-                     </span>
-                   ))}
-                 </div>
-               </div>
-            </div>
-         </div>
 
-         {/* 6. OPTIMIZATION SUGGESTIONS */}
-         <div className="glass p-8 rounded-[2.5rem] border-white/5 space-y-6">
-            <h3 className="text-xl font-black text-white flex items-center gap-2">
-              <Sparkles className="w-5 h-5 text-yellow-400" /> Optimization Suggestions
-            </h3>
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { l: 'Words', v: scan.metadata.wordCount },
+                { l: 'Page', v: 1 },
+                { l: 'Sections', v: scan.metadata.sections.length },
+                { l: 'Skills', v: scan.metadata.skills.length },
+                { l: 'Positions', v: scan.metadata.positions },
+                { l: 'Education', v: scan.metadata.education.length }
+              ].map(stat => (
+                <div key={stat.l} className="bg-white/[0.02] border border-white/5 p-3 rounded-2xl text-center flex items-center justify-center gap-2">
+                  <span className="text-xl font-black text-white">{stat.v}</span>
+                  <span className="text-[10px] font-black text-white/30 uppercase tracking-widest">{stat.l}</span>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest">Detected Sections</h4>
+              <div className="flex flex-wrap gap-2">
+                {scan.metadata.sections.map(s => (
+                  <span key={s} className="px-3 py-1 bg-[#10b981]/10 text-[#10b981] text-[10px] font-black uppercase tracking-widest rounded-full border border-[#10b981]/20">
+                    {s}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <h4 className="text-[10px] font-black text-white/40 uppercase tracking-widest">Extracted Skills</h4>
+              <div className="flex flex-wrap gap-1.5 max-h-24 overflow-y-auto pr-2 custom-scrollbar">
+                {scan.metadata.skills.map(skill => (
+                  <span key={skill} className="px-3 py-1 bg-white/5 text-white/70 text-[10px] font-black uppercase tracking-widest rounded-full border border-white/10">
+                    {skill}
+                  </span>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-col md:flex-row gap-6">
+              <div className="flex-1 space-y-2 text-sm text-white/60 font-medium bg-white/[0.01] p-4 rounded-2xl border border-white/5">
+                <h4 className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-3">Contact Info</h4>
+                <p className="flex items-center gap-2 truncate"><UserIcon className="w-4 h-4 text-white/30" /> Candidate</p>
+                {scan.metadata.contactInfo.email && <p className="flex items-center gap-2 truncate"><Globe className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.email}</p>}
+                {scan.metadata.contactInfo.phone && <p className="flex items-center gap-2 truncate"><ShieldCheck className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.phone}</p>}
+                {scan.metadata.contactInfo.linkedin && <p className="flex items-center gap-2 truncate"><Building2 className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.linkedin}</p>}
+              </div>
+              <div className="flex-1 space-y-2 bg-white/[0.01] p-4 rounded-2xl border border-white/5 flex flex-col justify-end">
+                {Object.entries(scan.metadata.checkmarks).map(([k, v]) => (
+                  <p key={k} className="flex items-center gap-2 text-xs font-bold text-white/40 uppercase tracking-widest">
+                    {v ? <CheckCircle2 className="w-4 h-4 text-[#10b981]" /> : <XCircle className="w-4 h-4 text-white/20" />}
+                    {k.replace(/([A-Z])/g, ' $1')}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 5. KEYWORD ANALYSIS */}
+        <div className="glass p-8 rounded-[2.5rem] border-white/5 space-y-6">
+          <h3 className="text-xl font-black text-white flex items-center gap-2">
+            <Search className="w-5 h-5 text-white/40" /> Keyword Analysis — <span className="text-[#6366f1]">{scan.results[0].breakdown.keywordMatch.score}% Match Rate</span>
+          </h3>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             <div className="space-y-4">
-               {scan.results[0].suggestions.map((s, idx) => (
-                 <div key={idx} className="bg-[#050507] p-5 rounded-2xl border border-white/5 flex gap-4 items-start">
-                    <div className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0 text-white/50 text-xs font-black mt-1">
-                       {idx + 1}
-                    </div>
-                    <div className="flex-1 space-y-2">
-                       <p className="text-sm font-bold text-white">{s.summary}</p>
-                       <ul className="text-xs text-white/60 space-y-1 list-disc pl-4">
-                         {s.details.map((detail, dIdx) => <li key={dIdx}>{detail}</li>)}
-                       </ul>
-                       <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pt-2">Platforms: {s.platforms.join(', ')}</p>
-                    </div>
-                    <div className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-md border",
-                      s.impact === 'critical' ? "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20" :
-                      s.impact === 'high' ? "bg-[#f97316]/10 text-[#f97316] border-[#f97316]/20" :
-                      s.impact === 'medium' ? "bg-[#eab308]/10 text-[#eab308] border-[#eab308]/20" :
-                      "bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20"
-                    )}>
-                       {s.impact} IMPACT
-                    </div>
-                 </div>
-               ))}
+              <h4 className="text-[10px] font-black text-[#10b981] uppercase tracking-widest">Matched Keywords</h4>
+              <div className="flex flex-wrap gap-2">
+                {scan.results[0].breakdown.keywordMatch.matched.map(kw => (
+                  <span key={kw} className="px-3 py-1.5 bg-[#10b981]/10 text-[#10b981] text-[10px] font-black uppercase tracking-widest rounded-lg border border-[#10b981]/20">
+                    {kw}
+                  </span>
+                ))}
+              </div>
             </div>
-         </div>
+            <div className="space-y-4">
+              <h4 className="text-[10px] font-black text-[#ef4444] uppercase tracking-widest">Missing Keywords</h4>
+              <div className="flex flex-wrap gap-2">
+                {scan.results[0].breakdown.keywordMatch.missing.map(kw => (
+                  <span key={kw} className="px-3 py-1.5 bg-[#ef4444]/10 text-[#ef4444] text-[10px] font-black uppercase tracking-widest rounded-lg border border-[#ef4444]/20">
+                    {kw}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* 6. OPTIMIZATION SUGGESTIONS */}
+        <div className="glass p-8 rounded-[2.5rem] border-white/5 space-y-6">
+          <h3 className="text-xl font-black text-white flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-yellow-400" /> Optimization Suggestions
+          </h3>
+          <div className="space-y-4">
+            {scan.results[0].suggestions.map((s, idx) => (
+              <div key={idx} className="bg-[#050507] p-5 rounded-2xl border border-white/5 flex gap-4 items-start">
+                <div className="w-8 h-8 rounded-full bg-white/[0.05] flex items-center justify-center shrink-0 text-white/50 text-xs font-black mt-1">
+                  {idx + 1}
+                </div>
+                <div className="flex-1 space-y-2">
+                  <p className="text-sm font-bold text-white">{s.summary}</p>
+                  <ul className="text-xs text-white/60 space-y-1 list-disc pl-4">
+                    {s.details.map((detail, dIdx) => <li key={dIdx}>{detail}</li>)}
+                  </ul>
+                  <p className="text-[9px] font-black text-white/30 uppercase tracking-widest pt-2">Platforms: {s.platforms.join(', ')}</p>
+                </div>
+                <div className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-md border",
+                  s.impact === 'critical' ? "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20" :
+                    s.impact === 'high' ? "bg-[#f97316]/10 text-[#f97316] border-[#f97316]/20" :
+                      s.impact === 'medium' ? "bg-[#eab308]/10 text-[#eab308] border-[#eab308]/20" :
+                        "bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20"
+                )}>
+                  {s.impact} IMPACT
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     </div>
   );
 }
 
-function HistorySection({ items, onView, onDelete }: { 
-  items: SavedScan[], 
-  onView: (s: SavedScan) => void, 
-  onDelete: (id: string) => void 
+function HistorySection({ items, onView, onDelete }: {
+  items: SavedScan[],
+  onView: (s: SavedScan) => void,
+  onDelete: (id: string) => void
 }) {
   if (items.length === 0) {
     return (
@@ -905,7 +936,7 @@ function HistorySection({ items, onView, onDelete }: {
           };
 
           return (
-            <div 
+            <div
               key={item.id}
               className="glass p-6 rounded-2xl flex items-center justify-between group hover:border-[#6366f1]/30 transition-all"
             >
@@ -923,13 +954,13 @@ function HistorySection({ items, onView, onDelete }: {
               </div>
 
               <div className="flex items-center gap-3">
-                <button 
-                   onClick={() => onView(item)}
-                   className="px-6 py-3 rounded-xl bg-white/[0.03] text-white/40 font-bold text-xs uppercase tracking-widest hover:bg-[#6366f1] hover:text-white transition-all border border-white/5"
+                <button
+                  onClick={() => onView(item)}
+                  className="px-6 py-3 rounded-xl bg-white/[0.03] text-white/40 font-bold text-xs uppercase tracking-widest hover:bg-[#6366f1] hover:text-white transition-all border border-white/5"
                 >
                   View Details
                 </button>
-                <button 
+                <button
                   onClick={() => onDelete(item.id)}
                   className="p-3 rounded-xl bg-red-500/5 text-red-500/20 hover:bg-red-500 hover:text-white transition-all border border-red-500/10"
                 >
@@ -947,7 +978,7 @@ function HistorySection({ items, onView, onDelete }: {
 function SettingsSection({ user }: { user: User | null }) {
   return (
     <div className="max-w-4xl mx-auto space-y-12 animate-fade-in">
-       <div className="space-y-4">
+      <div className="space-y-4">
         <div className="inline-flex px-3 py-1 bg-[#6366f1]/10 text-[#6366f1] text-[10px] font-black uppercase tracking-[0.2em] rounded-full border border-[#6366f1]/20">
           Personal Preferences
         </div>
@@ -956,76 +987,76 @@ function SettingsSection({ user }: { user: User | null }) {
       </div>
 
       <div className="grid gap-6">
-         <div className="glass p-8 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-8">
-            <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
-               <img src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`} className="w-20 h-20 rounded-[2rem] border border-white/10" alt="User" />
-               <div>
-                  <h3 className="text-xl font-bold text-white">{user?.displayName || user?.email?.split('@')[0]}</h3>
-                  <p className="text-white/30 text-sm">{user?.email}</p>
-                  <div className="flex gap-2 mt-3 justify-center md:justify-start">
-                     <span className="px-2 py-0.5 bg-[#6366f1]/10 text-[#6366f1] text-[10px] font-black uppercase rounded text-xs tracking-widest">Active Member</span>
-                     <span className="px-2 py-0.5 bg-white/5 text-white/30 text-[10px] font-black uppercase rounded text-xs tracking-widest">Free Tier</span>
-                  </div>
-               </div>
+        <div className="glass p-8 rounded-[2.5rem] flex flex-col md:flex-row items-center justify-between gap-8">
+          <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+            <img src={user?.photoURL || `https://api.dicebear.com/7.x/avataaars/svg?seed=${user?.email}`} className="w-20 h-20 rounded-[2rem] border border-white/10" alt="User" />
+            <div>
+              <h3 className="text-xl font-bold text-white">{user?.displayName || user?.email?.split('@')[0]}</h3>
+              <p className="text-white/30 text-sm">{user?.email}</p>
+              <div className="flex gap-2 mt-3 justify-center md:justify-start">
+                <span className="px-2 py-0.5 bg-[#6366f1]/10 text-[#6366f1] text-[10px] font-black uppercase rounded text-xs tracking-widest">Active Member</span>
+                <span className="px-2 py-0.5 bg-white/5 text-white/30 text-[10px] font-black uppercase rounded text-xs tracking-widest">Free Tier</span>
+              </div>
             </div>
-            <button onClick={() => auth.signOut()} className="px-6 py-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl font-bold text-sm hover:bg-red-500 hover:text-white transition-all whitespace-nowrap">
-               Sign Out
+          </div>
+          <button onClick={() => auth.signOut()} className="px-6 py-3 bg-red-500/10 text-red-500 border border-red-500/20 rounded-xl font-bold text-sm hover:bg-red-500 hover:text-white transition-all whitespace-nowrap">
+            Sign Out
+          </button>
+        </div>
+
+        <div className="grid md:grid-cols-2 gap-6">
+          <div className="glass p-8 rounded-[2.5rem] space-y-4">
+            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
+              <Shield className="w-6 h-6 text-[#6366f1]" />
+            </div>
+            <h4 className="text-lg font-bold text-white">Security & Privacy</h4>
+            <p className="text-white/40 text-sm leading-relaxed">All processing is done locally. Your resumes are never stored on our cloud servers without your explicit permission.</p>
+            <button className="text-[#6366f1] text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all">
+              Read Privacy Manifesto <ArrowRight className="w-4 h-4" />
             </button>
-         </div>
+          </div>
 
-         <div className="grid md:grid-cols-2 gap-6">
-            <div className="glass p-8 rounded-[2.5rem] space-y-4">
-               <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
-                  <Shield className="w-6 h-6 text-[#6366f1]" />
-               </div>
-               <h4 className="text-lg font-bold text-white">Security & Privacy</h4>
-               <p className="text-white/40 text-sm leading-relaxed">All processing is done locally. Your resumes are never stored on our cloud servers without your explicit permission.</p>
-               <button className="text-[#6366f1] text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all">
-                  Read Privacy Manifesto <ArrowRight className="w-4 h-4" />
-               </button>
+          <div className="glass p-8 rounded-[2.5rem] space-y-4">
+            <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
+              <BarChart3 className="w-6 h-6 text-[#10b981]" />
             </div>
+            <h4 className="text-lg font-bold text-white">Usage Analytics</h4>
+            <p className="text-white/40 text-sm leading-relaxed">System data synchronized. Archives are stored in your private Firestore silo.</p>
+            <button className="text-[#10b981] text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all">
+              Upgrade to Pro <ArrowRight className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
 
-            <div className="glass p-8 rounded-[2.5rem] space-y-4">
-               <div className="w-12 h-12 bg-white/5 rounded-2xl flex items-center justify-center">
-                  <BarChart3 className="w-6 h-6 text-[#10b981]" />
-               </div>
-               <h4 className="text-lg font-bold text-white">Usage Analytics</h4>
-               <p className="text-white/40 text-sm leading-relaxed">System data synchronized. Archives are stored in your private Firestore silo.</p>
-               <button className="text-[#10b981] text-xs font-black uppercase tracking-widest flex items-center gap-2 hover:gap-3 transition-all">
-                  Upgrade to Pro <ArrowRight className="w-4 h-4" />
-               </button>
-            </div>
-         </div>
-
-         <div className="glass p-8 rounded-[2.5rem] space-y-6">
-            <h4 className="text-lg font-black text-white px-2">System Preferences</h4>
-            <div className="space-y-4">
-               {[
-                 { label: 'High Precision Analysis', value: true, desc: 'Uses advanced semantic matching for higher scores on Lever and Greenhouse.' },
-                 { label: 'Automatic Archive', value: true, desc: 'Saves your scan results to the history automatically after scanning.' },
-                 { label: 'Dark Mode (Always On)', value: true, desc: 'Forced nocturnal theme for reduced eye strain.' }
-               ].map(pref => (
-                 <div key={pref.label} className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl flex items-center justify-between group hover:bg-white/[0.02] transition-all">
-                    <div>
-                       <p className="font-bold text-white group-hover:text-[#6366f1] transition-colors">{pref.label}</p>
-                       <p className="text-white/30 text-xs mt-1 leading-relaxed">{pref.desc}</p>
-                    </div>
-                    <div className="w-12 h-6 bg-[#6366f1] rounded-full p-1 relative flex items-center">
-                       <div className="absolute right-1 w-4 h-4 bg-white rounded-full" />
-                    </div>
-                 </div>
-               ))}
-            </div>
-         </div>
+        <div className="glass p-8 rounded-[2.5rem] space-y-6">
+          <h4 className="text-lg font-black text-white px-2">System Preferences</h4>
+          <div className="space-y-4">
+            {[
+              { label: 'High Precision Analysis', value: true, desc: 'Uses advanced semantic matching for higher scores on Lever and Greenhouse.' },
+              { label: 'Automatic Archive', value: true, desc: 'Saves your scan results to the history automatically after scanning.' },
+              { label: 'Dark Mode (Always On)', value: true, desc: 'Forced nocturnal theme for reduced eye strain.' }
+            ].map(pref => (
+              <div key={pref.label} className="p-6 bg-white/[0.01] border border-white/5 rounded-2xl flex items-center justify-between group hover:bg-white/[0.02] transition-all">
+                <div>
+                  <p className="font-bold text-white group-hover:text-[#6366f1] transition-colors">{pref.label}</p>
+                  <p className="text-white/30 text-xs mt-1 leading-relaxed">{pref.desc}</p>
+                </div>
+                <div className="w-12 h-6 bg-[#6366f1] rounded-full p-1 relative flex items-center">
+                  <div className="absolute right-1 w-4 h-4 bg-white rounded-full" />
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
       <div className="p-10 bg-red-500/5 border border-red-500/10 rounded-[3rem] text-center space-y-4">
-          <p className="text-red-500 font-bold uppercase tracking-widest text-[10px]">Danger Zone</p>
-          <h4 className="text-xl font-black text-white">Wipe All Records</h4>
-          <p className="text-white/40 text-sm max-w-sm mx-auto">This will irreversibly delete all your previous scans from our secure Firestore database.</p>
-          <button className="px-8 py-4 bg-red-500 text-white rounded-2xl font-bold text-sm hover:scale-95 transition-all shadow-xl shadow-red-500/20">
-             Delete Personal Data
-          </button>
+        <p className="text-red-500 font-bold uppercase tracking-widest text-[10px]">Danger Zone</p>
+        <h4 className="text-xl font-black text-white">Wipe All Records</h4>
+        <p className="text-white/40 text-sm max-w-sm mx-auto">This will irreversibly delete all your previous scans from our secure Firestore database.</p>
+        <button className="px-8 py-4 bg-red-500 text-white rounded-2xl font-bold text-sm hover:scale-95 transition-all shadow-xl shadow-red-500/20">
+          Delete Personal Data
+        </button>
       </div>
     </div>
   );

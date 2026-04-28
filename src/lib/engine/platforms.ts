@@ -38,15 +38,15 @@ const PLATFORMS: PlatformProfile[] = [
   {
     name: 'Workday',
     vendor: 'Workday Inc.',
-    weights: [0.25, 0.30, 0.15, 0.15, 0.10, 0.05],
+    weights: [0.35, 0.25, 0.15, 0.15, 0.05, 0.05], // High weight on formatting because many fail to parse
     sigma: 0.90,
     passing: 70,
     strategy: 'exact',
     quirks: [
-      // Non-standard headers > 2 unrecognised => -5
+      // Non-standard headers > 2 unrecognised => -10
       (meta) => {
         const unrecognised = meta.sections.filter(s => !STANDARD_SECTION_HEADERS.has(s)).length;
-        return unrecognised > 2 ? -5 : 0;
+        return unrecognised > 2 ? -10 : 0;
       },
       // Pages > 2 => -8
       (meta) => Math.ceil(meta.wordCount / 450) > 2 ? -8 : 0,
@@ -55,24 +55,24 @@ const PLATFORMS: PlatformProfile[] = [
   {
     name: 'Taleo',
     vendor: 'Oracle Taleo',
-    weights: [0.20, 0.35, 0.15, 0.15, 0.10, 0.05],
+    weights: [0.15, 0.50, 0.10, 0.15, 0.05, 0.05], // KEYWORD matching is everything in Taleo
     sigma: 0.85,
     passing: 75,
     strategy: 'exact',
     quirks: [
-      // Low skill density (< 5 skills detected with JD) => -10
+      // Low skill density (< 5 skills detected with JD) => -15
       (meta, d2) => {
         const jdActive = d2.matched.length + d2.missing.length > 0;
-        return (jdActive && meta.skills.length < 5) ? -10 : 0;
+        return (jdActive && meta.skills.length < 5) ? -15 : 0;
       },
-      // Missing standard sections (> 1 required missing) => -8
-      (_meta, _d2, d3) => d3.missing.length > 1 ? -8 : 0,
+      // Missing standard sections (> 1 required missing) => -12
+      (_meta, _d2, d3) => d3.missing.length > 1 ? -12 : 0,
     ],
   },
   {
     name: 'iCIMS',
     vendor: 'iCIMS',
-    weights: [0.15, 0.30, 0.15, 0.20, 0.10, 0.10],
+    weights: [0.15, 0.35, 0.15, 0.15, 0.10, 0.10],
     sigma: 0.60,
     passing: 60,
     strategy: 'fuzzy',
@@ -81,7 +81,7 @@ const PLATFORMS: PlatformProfile[] = [
   {
     name: 'Greenhouse',
     vendor: 'Greenhouse Software',
-    weights: [0.10, 0.25, 0.10, 0.25, 0.10, 0.20],
+    weights: [0.05, 0.30, 0.15, 0.30, 0.10, 0.10], // Focus on keywords and experience
     sigma: 0.40,
     passing: 50,
     strategy: 'semantic',
@@ -90,7 +90,7 @@ const PLATFORMS: PlatformProfile[] = [
   {
     name: 'Lever',
     vendor: 'Lever Inc.',
-    weights: [0.08, 0.22, 0.10, 0.30, 0.10, 0.20],
+    weights: [0.05, 0.25, 0.10, 0.40, 0.10, 0.10], // Huge focus on experience quality for recruiters
     sigma: 0.35,
     passing: 50,
     strategy: 'semantic',
@@ -99,7 +99,7 @@ const PLATFORMS: PlatformProfile[] = [
   {
     name: 'SuccessFactors',
     vendor: 'SAP SuccessFactors',
-    weights: [0.25, 0.25, 0.20, 0.15, 0.10, 0.05],
+    weights: [0.30, 0.30, 0.20, 0.10, 0.05, 0.05],
     sigma: 0.85,
     passing: 65,
     strategy: 'exact',
@@ -207,11 +207,11 @@ export function computeAllPlatforms(
     overallScore: Math.round(pc.overallScore),
     passesFilter: pc.overallScore >= pc.platform.passing,
     breakdown: {
-      formatting:   { score: Math.round(pc.d1.score), issues: pc.d1.issues, details: pc.d1.issues },
+      formatting: { score: Math.round(pc.d1.score), issues: pc.d1.issues, details: pc.d1.issues },
       keywordMatch: { score: Math.round(pc.d2.score), matched: pc.d2.matched, missing: pc.d2.missing, synonymMatched: pc.d2.synonyms },
-      sections:     { score: Math.round(pc.d3.score), present: pc.d3.present, missing: pc.d3.missing },
-      experience:   { score: Math.round(pc.d4.score), highlights: pc.d4.highlights, quantifiedBullets: pc.d4.quantifiedBullets, totalBullets: pc.d4.totalBullets, actionVerbCount: pc.d4.actionVerbCount },
-      education:    { score: Math.round(pc.d5.score), notes: pc.d5.notes }
+      sections: { score: Math.round(pc.d3.score), present: pc.d3.present, missing: pc.d3.missing },
+      experience: { score: Math.round(pc.d4.score), highlights: pc.d4.highlights, quantifiedBullets: pc.d4.quantifiedBullets, totalBullets: pc.d4.totalBullets, actionVerbCount: pc.d4.actionVerbCount },
+      education: { score: Math.round(pc.d5.score), notes: pc.d5.notes }
     },
     suggestions: buildSuggestions(pc)
   }));

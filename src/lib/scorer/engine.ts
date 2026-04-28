@@ -18,9 +18,29 @@ export function scoreAgainstProfile(input: ScoringInput, profile: ATSProfile): S
 
   // apply quirk penalties/bonuses
   const quirkAdjustment = computeQuirkAdjustment(input, profile);
-  const overallScore = Math.max(
+  let overallScore = weightedScore + quirkAdjustment.totalAdjustment;
+
+  // better differentiate scores between platforms based on identity
+  if (profile.name === 'Taleo') {
+    // Taleo is the harshest on non-exact keyword overlap
+    if (breakdown.keywordMatch.score < 60) {
+      overallScore -= 12;
+    }
+  } else if (profile.name === 'Greenhouse') {
+    // Greenhouse is more lenient and focuses on semantic flow
+    if (breakdown.keywordMatch.score > 40) {
+      overallScore += 8;
+    }
+  } else if (profile.name === 'Workday') {
+    // Workday is sensitive to formatting; if formatting is low, drop overall faster
+    if (breakdown.formatting.score < 60) {
+      overallScore -= 15;
+    }
+  }
+
+  const finalScore = Math.max(
     0,
-    Math.min(100, Math.round(weightedScore + quirkAdjustment.totalAdjustment))
+    Math.min(100, Math.round(overallScore))
   );
 
   const suggestions = generateSuggestions(breakdown, profile, quirkAdjustment.messages);
@@ -28,8 +48,8 @@ export function scoreAgainstProfile(input: ScoringInput, profile: ATSProfile): S
   return {
     system: profile.name,
     vendor: profile.vendor,
-    overallScore,
-    passesFilter: overallScore >= profile.passingScore,
+    overallScore: finalScore,
+    passesFilter: finalScore >= profile.passingScore,
     breakdown,
     suggestions
   };

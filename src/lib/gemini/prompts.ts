@@ -3,20 +3,20 @@
 // they encode actual documented parsing, matching, and scoring behavior
 
 export function buildFullScoringPrompt(resumeText: string, jobDescription?: string): string {
-	const resumeSlice = resumeText.slice(0, 6000);
-	const jdSlice = jobDescription?.slice(0, 4000);
+  const resumeSlice = resumeText.slice(0, 6000);
+  const jdSlice = jobDescription?.slice(0, 4000);
 
-	const jdSection = jdSlice
-		? `
+  const jdSection = jdSlice
+    ? `
 <JOB_DESCRIPTION>
 ${jdSlice}
 </JOB_DESCRIPTION>
 
 MODE: targeted scoring. match the resume against this specific job description. extract required and preferred skills from the JD. keyword match scores must reflect actual overlap between resume content and JD requirements.`
-		: `
+    : `
 MODE: general ATS readiness. no job description provided. evaluate formatting, structure, and professional keyword density for general ATS compatibility across industries. assess how well this resume would parse and surface in recruiter keyword searches for roles matching the candidate's apparent experience level and field.`;
 
-	return `You are a senior talent acquisition technology analyst who has worked hands-on with all 6 of these enterprise ATS/HCMS platforms. You understand their internal parsing engines, matching algorithms, and scoring mechanisms from real implementation experience and official documentation.
+  return `You are a senior talent acquisition technology analyst who has worked hands-on with all 6 of these enterprise ATS/HCMS platforms. You understand their internal parsing engines, matching algorithms, and scoring mechanisms from real implementation experience and official documentation.
 
 Your job: analyze the resume below from the perspective of each platform's ACTUAL behavior. Not generic ATS advice. Not made-up numbers. Real, differentiated analysis grounded in how these systems work.
 
@@ -52,7 +52,7 @@ AUTO-REJECT: only through configurable knockout questions. no auto-reject on con
 
 ### 2. ORACLE TALEO (legacy enterprise, being sunset for ORC)
 
-PARSER: proprietary OCR-based engine. notoriously fragile. strips HTML, special characters, certain fonts. known failure: dates before employer names caused entire experience sections to vanish.
+PARSER: proprietary OCR-based engine. notoriously fragile. strips HTML, special characters, certain fonts. known failure: dates before employer names caused entire experience sections to vanish. REQUIRES strict, standardized section headings. any deviation in formatting or section titles leads to significant parsing loss.
 
 WHAT BREAKS PARSING:
 - graphics, charts, images: cannot be read at all
@@ -60,7 +60,7 @@ WHAT BREAKS PARSING:
 - date-position sensitivity: dates placed before employer names has caused entire work experience sections to be lost
 - multiple degrees sometimes not parsed (candidate appears to have no education)
 
-MATCHING: LITERAL EXACT KEYWORD MATCH at base level. this is the #1 complaint. "project manager" and "project management" are treated as entirely different terms. "CPA" and "Certified Public Accountant" don't match. tense variations ("managed" vs "managing") don't match. the newer ORC platform has ML-based Suggested Candidates that CAN find similarities.
+MATCHING: LITERAL EXACT KEYWORD MATCH at base level. this is the #1 complaint. "project manager" and "project management" are treated as entirely different terms. "CPA" and "Certified Public Accountant" don't match. tense variations ("managed" vs "managing") don't match. the newer ORC platform has ML-based Suggested Candidates that CAN find similarities, but the filtering layer often PREVENTS them from seeing people who don't match the initial literal search.
 
 SCORING: THE MOST SCORE-HEAVY ATS. four mechanisms:
 1. Req Rank: percentage score from keyword overlap (visible to recruiters - low % = immediate dismissal)
@@ -82,11 +82,11 @@ AUTO-REJECT: no evidence of auto-reject on score alone. AI is advisory. humans m
 
 ### 4. GREENHOUSE (popular with tech companies, mid-market)
 
-PARSER: in-house fine-tuned LLM models (modular, task-specific) + OpenAI integration. most modern parser of the six. cannot parse images at all. extracts skills, job titles, years of experience, start/end dates, company names.
+PARSER: in-house fine-tuned LLM models (modular, task-specific) + OpenAI integration. most modern parser of the six. highly resilient to non-standard layouts, though it still cannot parse images. extracts skills, job titles, years of experience, start/end dates, company names with high accuracy even in irregular formats.
 
-MATCHING: semantic embedding matching. recognizes that "software engineer" and "web developer" are related to "software developer." provides highlighted resume terms showing both exact matches and semantically similar matches. recruiter can do boolean keyword search with Required (AND) and Preferred (OR) logic.
+MATCHING: DEEP SEMANTIC MATCHING. utilizes language models to understand that "software engineer" and "web developer" are equivalent in many contexts. provides highlighted resume terms showing both exact matches and semantically similar matches. it prioritizes the relationship between concepts over literal word overlap. recruiter can do boolean keyword search with Required (AND) and Preferred (OR) logic, but the system proactively suggests "Similar Candidates" based on semantic fit.
 
-SCORING: CRITICAL - Greenhouse historically did NOT score candidates. co-founder Jon Stross: "we don't have some magic AI that judges applicants." candidates appear in order they applied. NEW: Talent Matching (2024-2025) categorizes as Strong/Good/Partial/Limited Match with calibrated criteria and weights. but interview scorecards (human 5-point rating) remain the primary evaluation method.
+SCORING: CRITICAL - Historically did NOT score candidates. NEW: Talent Matching (2024-2025) uses semantic embeddings to categorize as Strong/Good/Partial/Limited Match. it focuses on the "meaning" of your experience rather than just the presence of keywords. however, interview scorecards (human 5-point rating) remain the final arbiter.
 
 AUTO-REJECT: NO, by design. human intervention required at every step. this is a core product principle. the biggest risk is the recruiter stopping after finding enough "pretty good" candidates from the first batch.
 
@@ -245,7 +245,7 @@ Return exactly 6 results in order: Workday, Taleo, iCIMS, Greenhouse, Lever, Suc
 }
 
 export function buildJDAnalysisPrompt(jobDescription: string): string {
-	return `You are a talent acquisition specialist. Analyze this job description and extract structured requirements. Be precise about what's required vs. preferred.
+  return `You are a talent acquisition specialist. Analyze this job description and extract structured requirements. Be precise about what's required vs. preferred.
 
 <JOB_DESCRIPTION>
 ${jobDescription.slice(0, 4000)}
@@ -275,11 +275,11 @@ Rules:
 }
 
 export function buildSemanticMatchPrompt(
-	resumeSkills: string[],
-	jobDescription: string,
-	resumeText: string
+  resumeSkills: string[],
+  jobDescription: string,
+  resumeText: string
 ): string {
-	return `You are an expert at identifying transferable skills and semantic equivalences that keyword matching would miss. This is critical because systems like Taleo use literal matching and miss qualified candidates.
+  return `You are an expert at identifying transferable skills and semantic equivalences that keyword matching would miss. This is critical because systems like Taleo use literal matching and miss qualified candidates.
 
 <RESUME_SKILLS>
 ${resumeSkills.join(', ')}
@@ -320,11 +320,11 @@ Rules:
 }
 
 export function buildSuggestionsPrompt(
-	resumeText: string,
-	jobDescription: string,
-	currentScore: number
+  resumeText: string,
+  jobDescription: string,
+  currentScore: number
 ): string {
-	return `You are a resume optimization specialist who understands how enterprise ATS platforms work internally.
+  return `You are a resume optimization specialist who understands how enterprise ATS platforms work internally.
 
 Current average ATS score: ${currentScore}/100
 

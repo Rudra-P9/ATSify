@@ -8,21 +8,21 @@ export function scoreFormatting(input: ScoringInput, strictness: number): ScoreB
 
   // multi-column layout detection
   if (input.hasMultipleColumns) {
-    const penalty = 15 * strictness;
+    const penalty = 20 * Math.pow(strictness, 2);
     deductions += penalty;
     issues.push('multi-column layout detected');
     details.push(
-      `multi-column layouts confuse most ATS parsers. text may be read out of order. (-${Math.round(penalty)})`
+      `multi-column layouts confuse strict ATS parsers (like Workday). text may be read out of order. (-${Math.round(penalty)})`
     );
   }
 
   // table detection
   if (input.hasTables) {
-    const penalty = 12 * strictness;
+    const penalty = 15 * Math.pow(strictness, 2);
     deductions += penalty;
     issues.push('tables detected in resume');
     details.push(
-      `tables are poorly supported by many ATS systems. content inside tables may be skipped entirely. (-${Math.round(penalty)})`
+      `tables are poorly supported by rigid ATS systems. content inside tables may be skipped entirely. (-${Math.round(penalty)})`
     );
   }
 

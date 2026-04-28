@@ -15,9 +15,9 @@ Education
 BS at MIT
     `;
 
-    const sections = detectSections(doc);
-    expect(sections.find(s => s.type === 'SUMMARY')).toBeDefined();
-    expect(sections.find(s => s.type === 'EXPERIENCE')).toBeDefined();
-    expect(sections.find(s => s.type === 'EDUCATION')).toBeDefined();
+    const sections = detectSections(doc.split('\n'));
+    expect(sections.find(s => s.type === 'summary')).toBeDefined();
+    expect(sections.find(s => s.type === 'experience')).toBeDefined();
+    expect(sections.find(s => s.type === 'education')).toBeDefined();
   });
 });

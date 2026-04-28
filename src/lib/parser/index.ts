@@ -9,9 +9,9 @@ import { parsePDF } from './pdf';
 import { parseDOCX } from './docx';
 import { detectSections } from './sectionDetector';
 import { extractContactInfo } from './contactExtractor';
-import { ParsedDocument } from './types';
+import { ParsedResume } from './types';
 
-export async function parseDocument(file: File): Promise<ParsedDocument> {
+export async function parseDocument(file: File): Promise<ParsedResume> {
   const extension = file.name.split('.').pop()?.toLowerCase();
 
   let text = '';
@@ -34,26 +34,43 @@ export async function parseDocument(file: File): Promise<ParsedDocument> {
       hasTables: result.hasTables,
       hasGraphics: result.hasImages
     };
+  } else if (extension === 'txt' || extension === 'text') {
+    text = await file.text();
+    metadataExtras = {
+      pageCount: 1,
+      hasTables: false,
+      hasGraphics: false
+    };
   } else {
-    throw new Error('Unsupported file format. Please upload PDF or DOCX.');
+    throw new Error('Unsupported file format. Please upload PDF, DOCX, or TXT.');
   }
 
-  const sections = detectSections(text);
-  const contactInfo = extractContactInfo(text);
+  const lines = text.split('\n');
+  const sections = detectSections(lines);
+  const contact = extractContactInfo(text);
 
   return {
-    text,
+    rawText: text,
+    lines,
+    contact,
     sections,
+    experience: [],
+    education: [],
+    projects: [],
+    certifications: [],
+    skills: [],
+    summary: null,
     metadata: {
+      fileType: (extension === 'pdf' ? 'pdf' : extension === 'docx' ? 'docx' : 'text') as any,
+      pageCount: metadataExtras.pageCount || 1,
       wordCount: (function () {
         const trimmedText = text.trim();
         return trimmedText ? trimmedText.split(/\s+/).length : 0;
       })(),
-      pageCount: metadataExtras.pageCount || 1,
+      lineCount: lines.length,
+      hasMultipleColumns: metadataExtras.hasColumns || false,
       hasTables: metadataExtras.hasTables || false,
-      hasColumns: metadataExtras.hasColumns || false,
-      hasGraphics: metadataExtras.hasGraphics || false,
-      contactInfo
+      hasImages: metadataExtras.hasGraphics || false,
     }
   };
 }

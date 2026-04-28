@@ -1,18 +1,26 @@
 import { describe, it, expect } from 'vitest';
 import { scoreExperience } from '../src/lib/scorer/experienceScorer';
-import { ParsedDocument, SectionType } from '../src/lib/parser/index';
+import { ParsedDocument } from '../src/lib/parser';
 
 describe('Experience Scorer', () => {
   it('should penalize unquantified bullets', () => {
     const doc: ParsedDocument = {
-      text: '',
+      rawText: '',
+      lines: [],
+      contact: {} as any,
+      experience: [],
+      education: [],
+      projects: [],
+      certifications: [],
+      skills: [],
+      summary: null,
       metadata: {} as any,
       sections: [{
-        title: 'Experience',
-        type: SectionType.EXPERIENCE,
+        header: 'Experience',
+        type: 'experience',
         content: '- Worked on the backend\n- Did some API changes',
-        startIndex: 0,
-        endIndex: 0
+        startLine: 0,
+        endLine: 0
       }]
     };
 

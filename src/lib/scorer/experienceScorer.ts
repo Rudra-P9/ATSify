@@ -1,5 +1,5 @@
 import { ExperienceScoreComponent } from './types';
-import { ParsedDocument, SectionType } from '../parser/index';
+import { ParsedDocument } from '../parser';
 
 const ACTION_VERBS = [
   'led',
@@ -14,7 +14,7 @@ const ACTION_VERBS = [
 ];
 
 export function scoreExperience(doc: ParsedDocument): ExperienceScoreComponent {
-  const experienceSection = doc.sections.find(s => s.type === SectionType.EXPERIENCE);
+  const experienceSection = doc.sections.find(s => s.type === 'experience');
 
   if (!experienceSection) {
     return {

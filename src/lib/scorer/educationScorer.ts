@@ -1,5 +1,5 @@
 import { ScoreComponent } from './types';
-import { ParsedDocument, SectionType } from '../parser/index';
+import { ParsedDocument } from '../parser';
 
 const DEGREE_LEVELS: Record<string, number> = {
   phd: 5,
@@ -34,7 +34,7 @@ const DEGREE_LEVELS: Record<string, number> = {
 
 // scores education section: degree, institution, dates, GPA, honors
 export function scoreEducation(doc: ParsedDocument): ScoreComponent {
-  const educationSection = doc.sections.find(s => s.type === SectionType.EDUCATION);
+  const educationSection = doc.sections.find(s => s.type === 'education');
   const educationText = educationSection?.content || '';
 
   if (!educationText || educationText.trim().length === 0) {

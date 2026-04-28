@@ -18,7 +18,7 @@ import {
   Timestamp
 } from 'firebase/firestore';
 import { auth, signInWithGoogle, db } from './lib/firebase';
-import { parseFile } from './lib/parser';
+import { parseDocument } from './lib/parser';
 import { analyzeResume, ATSResult, ResumeMetadata, AnalysisResponse } from './lib/gemini';
 import { cn, formatDate } from './lib/utils';
 import { 
@@ -415,7 +415,8 @@ function ScannerSection({ onResults }: { onResults: (results: ATSResult[], resum
 
     try {
       setProgress(25);
-      const text = await parseFile(file);
+      const doc = await parseDocument(file);
+      const text = doc.rawText;
       setProgress(50);
       const response = await analyzeResume(text, jobDescription);
       setProgress(90);

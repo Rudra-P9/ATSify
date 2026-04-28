@@ -1,4 +1,4 @@
-import { ParsedDocument } from '../parser/index';
+import { ParsedDocument } from '../parser';
 import { ScorerResult, ScoringWeights, ScoringInput } from './types';
 import { scoreFormatting } from './formatScorer';
 import { scoreKeywords } from './keywordScorer';
@@ -18,20 +18,20 @@ export function executeScoringEngine(
 
   // Map ParsedDocument to ScoringInput
   const scoringInput: ScoringInput = {
-    hasMultipleColumns: doc.metadata.hasColumns,
+    hasMultipleColumns: doc.metadata.hasMultipleColumns,
     hasTables: doc.metadata.hasTables,
-    hasImages: doc.metadata.hasGraphics,
+    hasImages: doc.metadata.hasImages,
     pageCount: doc.metadata.pageCount,
     wordCount: doc.metadata.wordCount,
-    resumeText: doc.text,
+    resumeText: doc.rawText,
     resumeSections: doc.sections.map((s) => s.type.toLowerCase()),
     experienceBullets: doc.sections
-      .filter((s) => s.type === 'EXPERIENCE')
+      .filter((s) => s.type === 'experience')
       .map((s) => s.content.split('\n'))
       .flat(),
     jobDescription: jobDescription,
     resumeSkills: doc.sections
-      .filter((s) => s.type === 'SKILLS')
+      .filter((s) => s.type === 'skills')
       .map((s) => s.content.split('\n'))
       .flat()
   };
@@ -40,10 +40,15 @@ export function executeScoringEngine(
   const keywordMatch = scoreKeywords(doc, jobDescription);
   const sections = scoreSections(
     doc.sections.map((s) => s.type),
-    profile?.requiredSections || ['EXPERIENCE', 'EDUCATION', 'SKILLS']
+    profile?.requiredSections || (['experience', 'education', 'skills'] as any)
   );
   const experience = scoreExperience(doc);
   const education = scoreEducation(doc);
+
+  // Calculate quantification score (0-100)
+  const quantificationScore = experience.totalBullets > 0
+    ? (experience.quantifiedBullets / experience.totalBullets) * 100
+    : 0;
 
   // Apply quirks if profile exists
   let quirksDeductions = 0;
@@ -62,7 +67,8 @@ export function executeScoringEngine(
     keywordMatch.score * weights.keywordMatch +
     sections.score * weights.sectionCompleteness +
     experience.score * weights.experienceRelevance +
-    education.score * weights.educationMatch -
+    education.score * weights.educationMatch +
+    quantificationScore * weights.quantification -
     quirksDeductions
   );
 

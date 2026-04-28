@@ -1,5 +1,5 @@
 import { ScoreComponent } from './types';
-import { ParsedDocument } from '../parser/index';
+import { ParsedDocument } from '../parser';
 import { extractKeywords } from '../nlp/keywordExtractor';
 
 export function scoreKeywords(doc: ParsedDocument, jobDescription?: string): ScoreComponent {
@@ -13,7 +13,7 @@ export function scoreKeywords(doc: ParsedDocument, jobDescription?: string): Sco
   }
 
   const jdKeywords = extractKeywords(jobDescription);
-  const resumeKeywordSet = new Set(extractKeywords(doc.text));
+  const resumeKeywordSet = new Set(extractKeywords(doc.rawText));
 
   const matched: string[] = [];
   const missing: string[] = [];

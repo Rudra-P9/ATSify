@@ -120,14 +120,32 @@ export default function App() {
 
   const saveScan = async (scan: Omit<SavedScan, 'id'>) => {
     if (!user) return;
+
     try {
+      // 🔍 DEBUG HERE
+      console.log("Saving scan:", {
+        userId: user.uid,
+        hasResumeText: !!scan.resumeText,
+        resultsCount: scan.results?.length,
+        hasMetadata: !!scan.metadata
+      });
       const docRef = await addDoc(collection(db, 'scans'), {
         ...scan,
-        userId: user.uid
+        userId: user.uid,
+
+        // 🔥 REQUIRED for your Firestore rules
+        metadata: scan.metadata || {},
+
+        // 🔥 MUST be serverTimestamp (not new Date)
+        createdAt: serverTimestamp()
       });
+
       const newScan = { ...scan, id: docRef.id };
+
       setHistory(prev => [newScan, ...prev]);
+
       return newScan;
+
     } catch (error) {
       console.error("Error saving scan:", error);
     }
@@ -501,8 +519,8 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
               <div className="text-[10px] text-white/40 font-black tracking-widest uppercase">AVERAGE SCORE</div>
               <div className={cn(
                 "mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border",
-                scan.results[0].engineUsed === 'gemini' 
-                  ? "bg-[#6366f1]/10 text-[#6366f1] border-[#6366f1]/20" 
+                scan.results[0].engineUsed === 'gemini'
+                  ? "bg-[#6366f1]/10 text-[#6366f1] border-[#6366f1]/20"
                   : "bg-white/5 text-white/40 border-white/10"
               )}>
                 {scan.results[0].engineUsed === 'gemini' ? (
@@ -680,7 +698,7 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
               <div className="flex-1 space-y-2 text-sm text-white/60 font-medium bg-white/[0.01] p-4 rounded-2xl border border-white/5">
                 <h4 className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-3">Contact Info</h4>
                 <p className="flex items-center gap-2 truncate">
-                  <UserIcon className="w-4 h-4 text-white/30" /> 
+                  <UserIcon className="w-4 h-4 text-white/30" />
                   {scan.metadata.contactInfo.name || scan.metadata.contactInfo.email?.split('@')[0]?.replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Candidate'}
                 </p>
                 {scan.metadata.contactInfo.email && <p className="flex items-center gap-2 truncate"><Globe className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.email}</p>}

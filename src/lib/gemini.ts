@@ -216,22 +216,38 @@ export async function analyzeResume(doc: ParsedDocument, jobDescription?: string
   // Attempt server-side Gemini analysis
   try {
     console.log("[ATSify-Trace] Requesting Gemini analysis from server...");
-    
+
     const response = await fetch('/api/analyze', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        resumeText: doc.rawText, 
-        jobDescription 
+      body: JSON.stringify({
+        resumeText: doc.rawText,
+        jobDescription
       })
     });
 
     if (!response.ok) {
-      const errorData = await response.json();
-      throw new Error(errorData.error || `Server returned ${response.status}`);
+      const raw = await response.text();
+
+      let message = raw;
+      try {
+        const parsed = JSON.parse(raw);
+        message = parsed.error || parsed.message || raw;
+      } catch {
+        // keep raw text
+      }
+
+      throw new Error(message || `Server returned ${response.status}`);
     }
 
-    const data = await response.json();
+    const raw = await response.text();
+
+    let data;
+    try {
+      data = JSON.parse(raw);
+    } catch {
+      throw new Error("Server returned invalid JSON");
+    }
     console.log("[ATSify-Trace] Gemini Analysis Received from Server");
 
     // 1. Defensive handling: confirm data.results exists and is an array
@@ -253,7 +269,7 @@ export async function analyzeResume(doc: ParsedDocument, jobDescription?: string
   const scoringInput = buildScoringInput(doc, jobDescription);
   const scoreResults = scoreResume(scoringInput);
   const results = adaptScorerResults(scoreResults);
-  
+
   console.log("[ATSify-Trace] Deterministic Engine Completion. Results:", results.length);
 
   return { results, metadata };

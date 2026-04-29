@@ -1,7 +1,7 @@
 import express from 'express';
 import dotenv from 'dotenv';
 dotenv.config();
-import { POST as analyzeHandler } from './src/routes/api/analyze/+server.ts';
+import analyzeHandler from './api/analyze.ts';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -22,17 +22,7 @@ async function startServer() {
   });
 
   // Gemini Analysis Proxy
-  app.post('/api/analyze', async (req, res) => {
-    try {
-      const result = await analyzeHandler(req);
-      if (result.error) {
-        return res.status(result.status || 500).json({ error: result.error });
-      }
-      res.json(result);
-    } catch (error: any) {
-      res.status(500).json({ error: error.message });
-    }
-  });
+  app.post('/api/analyze', analyzeHandler);
 
   // Since platform rules mandate Gemini calls from frontend,
 

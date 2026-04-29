@@ -88,6 +88,36 @@ const ATS_SCHEMA = {
   required: ["results"]
 };
 
+/**
+ * Robust JSON extraction for AI responses
+ */
+function extractJSON(raw: string) {
+  const trimmed = raw.trim();
+
+  // attempt 1: direct parse
+  try {
+    return JSON.parse(trimmed);
+  } catch { }
+
+  // attempt 2: remove markdown fences
+  const cleaned = trimmed.replace(/```json\n?|\n?```/g, "").trim();
+  try {
+    return JSON.parse(cleaned);
+  } catch { }
+
+  // attempt 3: extract { ... }
+  const start = cleaned.indexOf("{");
+  const end = cleaned.lastIndexOf("}");
+
+  if (start !== -1 && end > start) {
+    try {
+      return JSON.parse(cleaned.slice(start, end + 1));
+    } catch { }
+  }
+
+  return null;
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -143,19 +173,27 @@ export default async function handler(req: any, res: any) {
 
     const text = response.text();
     console.log(`[ATSify-API] Gemini Success (${duration}ms)`);
+    console.log("[ATSify-API] Raw Gemini output:", text.slice(0, 200));
 
-    // 4. Server-side validation
-    let parsed;
-    try {
-      parsed = JSON.parse(text);
-    } catch (parseErr) {
-      console.error("[ATSify-API] JSON Parse Error:", text);
-      throw new Error("Gemini returned invalid JSON");
+    // 4. Server-side validation with robust extraction
+    const parsed = extractJSON(text);
+
+    if (!parsed) {
+      console.error("[ATSify-API] JSON extraction failed:", text);
+
+      return res.status(500).json({
+        error: "Gemini returned invalid or unparsable JSON",
+        raw: text.slice(0, 300),
+        engineUsed: "deterministic-fallback"
+      });
     }
 
-    if (!parsed || !parsed.results || !Array.isArray(parsed.results)) {
+    if (!parsed.results || !Array.isArray(parsed.results)) {
       console.error("[ATSify-API] Validation Failed: results array missing", parsed);
-      throw new Error("Gemini response missing results array");
+      return res.status(500).json({
+        error: "Gemini response missing results array",
+        engineUsed: "deterministic-fallback"
+      });
     }
 
     console.log("[ATSify-API] Validation Success. Results count:", parsed.results.length);

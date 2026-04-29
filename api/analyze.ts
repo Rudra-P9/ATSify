@@ -118,6 +118,7 @@ function extractJSON(raw: string) {
   return null;
 }
 
+
 const SYSTEMS = [
   "Workday",
   "Taleo",
@@ -127,13 +128,28 @@ const SYSTEMS = [
   "SuccessFactors"
 ];
 
+function normalizeName(name: string) {
+  const n = name.toLowerCase();
+
+  if (n.includes("workday")) return "Workday";
+  if (n.includes("taleo")) return "Taleo";
+  if (n.includes("icims")) return "iCIMS";
+  if (n.includes("greenhouse")) return "Greenhouse";
+  if (n.includes("lever")) return "Lever";
+  if (n.includes("success") || n.includes("sap")) return "SuccessFactors";
+
+  return name;
+}
+
 function normalizeResults(results: any[]) {
-  const map = new Map(results.map(r => [r.system, r]));
+  const map = new Map(
+    results.map(r => [normalizeName(r.system), r])
+  );
 
   return SYSTEMS.map(system => {
     if (map.has(system)) return map.get(system);
 
-    // fallback placeholder if missing
+    // fallback only if missing
     return {
       system,
       vendor: "",
@@ -223,6 +239,11 @@ export default async function handler(req: any, res: any) {
         engineUsed: "deterministic-fallback"
       });
     }
+
+    console.log(
+      "[ATSify-API] RAW Gemini systems:",
+      parsed.results?.map((r: any) => r.system)
+    );
 
     if (!parsed.results || !Array.isArray(parsed.results)) {
       console.error("[ATSify-API] Validation Failed: results array missing", parsed);

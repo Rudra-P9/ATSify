@@ -202,35 +202,26 @@ CRITICAL RULES:
 
 ---
 
-Respond ONLY with valid JSON matching this exact structure. no markdown fences, no explanation, no extra text before or after the JSON:
+Respond ONLY with valid JSON. No markdown, no explanations, no extra text.
+
+CRITICAL:
+- The "results" array MUST contain exactly 6 objects
+- The systems MUST be in this exact order:
+  1. Workday
+  2. Taleo
+  3. iCIMS
+  4. Greenhouse
+  5. Lever
+  6. SuccessFactors
 
 {
   "results": [
-    {
-      "system": "Workday",
-      "vendor": "Workday Inc.",
-      "overallScore": 75,
-      "passesFilter": true,
-      "breakdown": {
-        "formatting": { "score": 80, "issues": ["specific issue for this platform"], "details": ["what the parser would do with this resume"] },
-        "keywordMatch": { "score": 70, "matched": ["actual skills/terms found"], "missing": ["important terms not found"], "synonymMatched": ["terms matching semantically on platforms that support it"] },
-        "sections": { "score": 85, "present": ["experience", "education", "skills"], "missing": ["summary"] },
-        "experience": { "score": 75, "quantifiedBullets": 5, "totalBullets": 10, "actionVerbCount": 7, "highlights": ["notable strength"] },
-        "education": { "score": 90, "notes": ["observation about education section"] }
-      },
-      "suggestions": [
-        {
-          "summary": "Your 'Developed microservices architecture' bullet lacks quantified impact",
-          "details": [
-            "Change 'Developed microservices architecture for payment processing' to 'Designed and deployed 12 microservices handling 50K+ daily transactions, reducing payment processing latency by 40%'",
-            "Workday's HiredScore AI weights quantified achievements significantly higher than unquantified descriptions",
-            "Adding metrics to your 3 unquantified experience bullets would strengthen your experience score across all 6 platforms"
-          ],
-          "impact": "critical",
-          "platforms": ["Workday", "iCIMS", "SuccessFactors"]
-        }
-      ]
-    }
+    { "system": "Workday" },
+    { "system": "Taleo" },
+    { "system": "iCIMS" },
+    { "system": "Greenhouse" },
+    { "system": "Lever" },
+    { "system": "SuccessFactors" }
   ]
 }
 

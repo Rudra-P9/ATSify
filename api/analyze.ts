@@ -1,152 +1,63 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { buildFullScoringPrompt } from "../src/lib/gemini/prompts";
 
-// Schema definition for Gemini structured output
-const ATS_SCHEMA = {
-  type: "object",
-  properties: {
-    results: {
-      type: "array",
-      items: {
-        type: "object",
-        properties: {
-          system: { type: "string" },
-          vendor: { type: "string" },
-          overallScore: { type: "number" },
-          passesFilter: { type: "boolean" },
-          breakdown: {
-            type: "object",
-            properties: {
-              formatting: { 
-                type: "object", 
-                properties: { 
-                  score: { type: "number" }, 
-                  issues: { type: "array", items: { type: "string" } }, 
-                  details: { type: "array", items: { type: "string" } } 
-                }, 
-                required: ["score", "issues", "details"] 
-              },
-              keywordMatch: { 
-                type: "object", 
-                properties: { 
-                  score: { type: "number" }, 
-                  matched: { type: "array", items: { type: "string" } }, 
-                  missing: { type: "array", items: { type: "string" } }, 
-                  synonymMatched: { type: "array", items: { type: "string" } } 
-                }, 
-                required: ["score", "matched", "missing", "synonymMatched"] 
-              },
-              sections: { 
-                type: "object", 
-                properties: { 
-                  score: { type: "number" }, 
-                  present: { type: "array", items: { type: "string" } }, 
-                  missing: { type: "array", items: { type: "string" } } 
-                }, 
-                required: ["score", "present", "missing"] 
-              },
-              experience: { 
-                type: "object", 
-                properties: { 
-                  score: { type: "number" }, 
-                  highlights: { type: "array", items: { type: "string" } }, 
-                  quantifiedBullets: { type: "number" }, 
-                  totalBullets: { type: "number" }, 
-                  actionVerbCount: { type: "number" } 
-                }, 
-                required: ["score", "quantifiedBullets", "totalBullets", "actionVerbCount", "highlights"] 
-              },
-              education: { 
-                type: "object", 
-                properties: { 
-                  score: { type: "number" }, 
-                  notes: { type: "array", items: { type: "string" } } 
-                }, 
-                required: ["score", "notes"] 
-              }
-            },
-            required: ["formatting", "keywordMatch", "sections", "experience", "education"]
-          },
-          suggestions: {
-            type: "array",
-            items: {
-              type: "object",
-              properties: {
-                summary: { type: "string" },
-                details: { type: "array", items: { type: "string" } },
-                impact: { type: "string", enum: ["critical", "high", "medium", "low"] },
-                platforms: { type: "array", items: { type: "string" } }
-              },
-              required: ["summary", "details", "impact", "platforms"]
-            }
-          }
-        },
-        required: ["system", "vendor", "overallScore", "passesFilter", "breakdown", "suggestions"]
-      }
-    }
-  },
-  required: ["results"]
-};
-
-/**
- * Vercel Serverless Function: POST /api/analyze
- */
 export default async function handler(req: any, res: any) {
-  // 1. Handle Preflight and Method
-  if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method Not Allowed' });
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
   }
 
-  // 2. Extract Data
-  const { resumeText, jobDescription } = req.body;
   const apiKey = process.env.GEMINI_API_KEY;
-
-  console.log("[ATSify-API] Request received at root /api/analyze");
+  console.log("[ATSify-API] Request received at /api/analyze");
   console.log("[ATSify-API] API Key Detection:", !!apiKey);
 
   if (!apiKey) {
-    console.error("[ATSify-API] Error: Missing GEMINI_API_KEY in environment");
-    return res.status(500).json({ 
-      error: "Server configuration error: Gemini API key is missing on the host.",
-      engineUsed: 'deterministic-fallback'
+    return res.status(500).json({
+      error: "Missing GEMINI_API_KEY on server",
+      engineUsed: "deterministic-fallback"
     });
   }
 
   try {
+    const body =
+      typeof req.body === "string" ? JSON.parse(req.body) : req.body || {};
+    const { resumeText, jobDescription } = body;
+
+    console.log("[ATSify-API] Body parsed:", {
+      hasResumeText: !!resumeText,
+      hasJobDescription: !!jobDescription
+    });
+
+    if (!resumeText || typeof resumeText !== "string") {
+      return res.status(400).json({
+        error: "resumeText is required",
+        engineUsed: "deterministic-fallback"
+      });
+    }
+
     const genAI = new GoogleGenerativeAI(apiKey);
     const modelName = "gemini-2.5-flash";
     console.log("[ATSify-API] Using model:", modelName);
 
     const model = genAI.getGenerativeModel({
-      model: modelName,
-      generationConfig: {
-        responseMimeType: "application/json",
-        responseSchema: ATS_SCHEMA as any,
-        temperature: 0.1
-      }
+      model: modelName
     });
 
-    console.log("[ATSify-API] Sending request to Gemini...");
-    const prompt = buildFullScoringPrompt(resumeText, jobDescription);
+    console.log("[ATSify-API] Sending minimal Gemini test request...");
+    const result = await model.generateContent("Say hello in one sentence.");
+    const text = result.response.text();
 
-    const startTime = Date.now();
-    const result = await model.generateContent(prompt);
-    const response = await result.response;
-    const duration = Date.now() - startTime;
+    console.log("[ATSify-API] Gemini minimal test success:", text);
 
-    const text = response.text();
-    console.log(`[ATSify-API] Gemini Success (${duration}ms)`);
-
-    const parsed = JSON.parse(text);
-    return res.status(200).json({ 
-      results: parsed.results,
-      engineUsed: 'gemini'
+    return res.status(200).json({
+      ok: true,
+      engineUsed: "gemini",
+      text
     });
   } catch (error: any) {
-    console.error("[ATSify-API] Gemini Analysis Failed:", error.message);
-    return res.status(500).json({ 
-      error: error.message,
-      engineUsed: 'deterministic-fallback'
+    console.error("[ATSify-API] Gemini Analysis Failed:", error);
+    return res.status(500).json({
+      error: error?.message || "Unknown server error",
+      details: String(error),
+      engineUsed: "deterministic-fallback"
     });
   }
 }

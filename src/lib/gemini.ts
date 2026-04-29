@@ -234,6 +234,12 @@ export async function analyzeResume(doc: ParsedDocument, jobDescription?: string
     const data = await response.json();
     console.log("[ATSify-Trace] Gemini Analysis Received from Server");
 
+    // 1. Defensive handling: confirm data.results exists and is an array
+    if (!data || !data.results || !Array.isArray(data.results)) {
+      console.error("[ATSify-Trace] Gemini Failure: Server response missing results array", data);
+      throw new Error("Gemini response missing results array");
+    }
+
     return {
       results: (data.results as ATSResult[]).map(r => ({ ...r, engineUsed: 'gemini' })),
       metadata

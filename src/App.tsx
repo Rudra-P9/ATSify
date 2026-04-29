@@ -409,9 +409,10 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
     return '#ef4444';
   };
 
-  const getStatusText = (score: number) => {
-    if (score >= 80) return 'LIKELY TO PASS';
-    if (score >= 60) return 'MAY BE FILTERED';
+  const getStatusText = (score: number, passesFilter: boolean) => {
+    if (passesFilter && score >= 80) return 'STRONG PASS';
+    if (passesFilter) return 'PASSES FILTER';
+    if (score >= 50) return 'AT RISK';
     return 'NEEDS WORK';
   };
 
@@ -516,11 +517,12 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
               </div>
 
               <div className={cn("px-3 py-1 text-[9px] font-black uppercase tracking-widest rounded-lg self-start border",
-                r.overallScore >= 80 ? "bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20" :
-                  r.overallScore >= 60 ? "bg-[#eab308]/10 text-[#eab308] border-[#eab308]/20" :
-                    "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20"
+                r.passesFilter && r.overallScore >= 80 ? "bg-[#10b981]/10 text-[#10b981] border-[#10b981]/20" :
+                  r.passesFilter ? "bg-[#22c55e]/10 text-[#22c55e] border-[#22c55e]/20" :
+                    r.overallScore >= 50 ? "bg-[#eab308]/10 text-[#eab308] border-[#eab308]/20" :
+                      "bg-[#ef4444]/10 text-[#ef4444] border-[#ef4444]/20"
               )}>
-                {getStatusText(r.overallScore)}
+                {getStatusText(r.overallScore, r.passesFilter)}
               </div>
 
               <div className="space-y-3">
@@ -639,7 +641,7 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex-1 space-y-2 text-sm text-white/60 font-medium bg-white/[0.01] p-4 rounded-2xl border border-white/5">
                 <h4 className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-3">Contact Info</h4>
-                <p className="flex items-center gap-2 truncate"><UserIcon className="w-4 h-4 text-white/30" /> Candidate</p>
+                <p className="flex items-center gap-2 truncate"><UserIcon className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.email?.split('@')[0]?.replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Candidate'}</p>
                 {scan.metadata.contactInfo.email && <p className="flex items-center gap-2 truncate"><Globe className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.email}</p>}
                 {scan.metadata.contactInfo.phone && <p className="flex items-center gap-2 truncate"><ShieldCheck className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.phone}</p>}
                 {scan.metadata.contactInfo.linkedin && <p className="flex items-center gap-2 truncate"><Building2 className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.linkedin}</p>}
@@ -659,30 +661,47 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
         {/* 5. KEYWORD ANALYSIS */}
         <div className="glass p-8 rounded-[2.5rem] border-white/5 space-y-6">
           <h3 className="text-xl font-black text-white flex items-center gap-2">
-            <Search className="w-5 h-5 text-white/40" /> Keyword Analysis — <span className="text-[#6366f1]">{scan.results[0].breakdown.keywordMatch.score}% Match Rate</span>
+            <Search className="w-5 h-5 text-white/40" />
+            {scan.jobDescription
+              ? <>Keyword Analysis — <span className="text-[#6366f1]">{scan.results[0].breakdown.keywordMatch.score}% Match Rate</span></>
+              : <>Detected Skills — <span className="text-[#6366f1]">{scan.results[0].breakdown.keywordMatch.matched.length} Found</span></>
+            }
           </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          {scan.jobDescription ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-[#10b981] uppercase tracking-widest">Matched Keywords</h4>
+                <div className="flex flex-wrap gap-2">
+                  {scan.results[0].breakdown.keywordMatch.matched.map(kw => (
+                    <span key={kw} className="px-3 py-1.5 bg-[#10b981]/10 text-[#10b981] text-[10px] font-black uppercase tracking-widest rounded-lg border border-[#10b981]/20">
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
+              <div className="space-y-4">
+                <h4 className="text-[10px] font-black text-[#ef4444] uppercase tracking-widest">Missing Keywords</h4>
+                <div className="flex flex-wrap gap-2">
+                  {scan.results[0].breakdown.keywordMatch.missing.map(kw => (
+                    <span key={kw} className="px-3 py-1.5 bg-[#ef4444]/10 text-[#ef4444] text-[10px] font-black uppercase tracking-widest rounded-lg border border-[#ef4444]/20">
+                      {kw}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
             <div className="space-y-4">
-              <h4 className="text-[10px] font-black text-[#10b981] uppercase tracking-widest">Matched Keywords</h4>
+              <p className="text-xs text-white/40">These skills were automatically detected in your resume. Add a job description for targeted keyword matching.</p>
               <div className="flex flex-wrap gap-2">
                 {scan.results[0].breakdown.keywordMatch.matched.map(kw => (
-                  <span key={kw} className="px-3 py-1.5 bg-[#10b981]/10 text-[#10b981] text-[10px] font-black uppercase tracking-widest rounded-lg border border-[#10b981]/20">
+                  <span key={kw} className="px-3 py-1.5 bg-[#6366f1]/10 text-[#6366f1] text-[10px] font-black uppercase tracking-widest rounded-lg border border-[#6366f1]/20">
                     {kw}
                   </span>
                 ))}
               </div>
             </div>
-            <div className="space-y-4">
-              <h4 className="text-[10px] font-black text-[#ef4444] uppercase tracking-widest">Missing Keywords</h4>
-              <div className="flex flex-wrap gap-2">
-                {scan.results[0].breakdown.keywordMatch.missing.map(kw => (
-                  <span key={kw} className="px-3 py-1.5 bg-[#ef4444]/10 text-[#ef4444] text-[10px] font-black uppercase tracking-widest rounded-lg border border-[#ef4444]/20">
-                    {kw}
-                  </span>
-                ))}
-              </div>
-            </div>
-          </div>
+          )}
         </div>
 
         {/* 6. OPTIMIZATION SUGGESTIONS */}

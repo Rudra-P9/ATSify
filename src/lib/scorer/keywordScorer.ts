@@ -32,12 +32,15 @@ export function matchKeywords(
   strategy: 'exact' | 'fuzzy' | 'semantic'
 ): ScoreBreakdown['keywordMatch'] {
   if (!jobDescription) {
-    // No JD: return a conservative baseline from resume's own keyword density
+    // No JD (General Readiness mode): score based on resume's own keyword density.
+    // A typical resume with 10-15 extracted skills should score around 65-75.
     const resumeKeywords = extractKeywords(resumeText);
-    const score = Math.min(60, resumeKeywords.length * 4);
+    const baseScore = 15;
+    const densityScore = Math.min(55, resumeKeywords.length * 5);
+    const score = Math.min(80, baseScore + densityScore);
     return {
       score,
-      matched: resumeKeywords.slice(0, 10),
+      matched: resumeKeywords,
       missing: [],
       synonymMatched: []
     };

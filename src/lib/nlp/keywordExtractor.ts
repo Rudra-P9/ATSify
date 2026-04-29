@@ -53,15 +53,33 @@ export function extractKeywords(text: string): string[] {
     }
   }
 
-  // 2. Capture ALL-CAPS tokens not in taxonomy (likely acronyms: SEO, SEM, CPA, PMP)
+  // 2. Capture ALL-CAPS tokens as likely acronyms (SEO, SEM, CPA, PMP)
+  // HARDENED: filters out garbage from PDF text concatenation and common non-skill tokens.
+  const ACRONYM_BLOCKLIST = new Set([
+    'II', 'III', 'IV', 'VI', 'VII', 'VIII', 'IX', 'XI', 'XII',  // roman numerals
+    'VS', 'SC', 'AM', 'PM', 'AN', 'AT', 'IN', 'ON', 'OR', 'IF', // common words
+    'OF', 'BY', 'TO', 'IS', 'IT', 'AS', 'BE', 'DO', 'GO', 'NO', 'SO', 'UP', 'WE',
+    'OK', 'US', 'HE', 'ME', 'MY', 'OH',
+    'THE', 'AND', 'FOR', 'ARE', 'BUT', 'NOT', 'YOU', 'ALL', 'CAN', 'HER', 'WAS',
+    'ONE', 'OUR', 'OUT', 'HAS', 'HIS', 'HOW', 'ITS', 'MAY', 'NEW', 'NOW', 'OLD',
+    'SEE', 'WAY', 'WHO', 'DID', 'GET', 'LET', 'SAY', 'SHE', 'TOO', 'USE',
+    'INC', 'LLC', 'LTD', 'JAN', 'FEB', 'MAR', 'APR', 'JUN', 'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC',
+  ]);
+
   const words = text.split(/[\s,;|]+/);
   for (const word of words) {
-    const clean = word.replace(/[^A-Za-z0-9+#.]/g, '');
+    const clean = word.replace(/[^A-Za-z0-9+#]/g, '');  // strip dots too (prevents GPA3.723)
+    // Must be 2-10 chars, ALL letters must be uppercase, must have ≥2 letters, not in blocklist
+    const letters = clean.replace(/[^A-Za-z]/g, '');
     if (
       clean.length >= 2 &&
-      clean === clean.toUpperCase() &&
+      clean.length <= 10 &&
+      letters.length >= 2 &&
+      letters === letters.toUpperCase() &&
       /[A-Z]/.test(clean) &&
-      !JD_FILLER.has(clean.toLowerCase())
+      !ACRONYM_BLOCKLIST.has(clean) &&
+      !JD_FILLER.has(clean.toLowerCase()) &&
+      !/^\d/.test(clean)  // no leading digits (catches things like "3D" false positives)
     ) {
       keywords.add(clean);
     }

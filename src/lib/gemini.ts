@@ -49,37 +49,37 @@ export interface AnalysisResponse {
 }
 
 const ATS_SCHEMA = {
-  type: SchemaType.OBJECT,
+  type: "object",
   properties: {
     results: {
-      type: SchemaType.ARRAY,
+      type: "array",
       items: {
-        type: SchemaType.OBJECT,
+        type: "object",
         properties: {
-          system: { type: SchemaType.STRING },
-          vendor: { type: SchemaType.STRING },
-          overallScore: { type: SchemaType.NUMBER },
-          passesFilter: { type: SchemaType.BOOLEAN },
+          system: { type: "string" },
+          vendor: { type: "string" },
+          overallScore: { type: "number" },
+          passesFilter: { type: "boolean" },
           breakdown: {
-            type: SchemaType.OBJECT,
+            type: "object",
             properties: {
-              formatting: { type: SchemaType.OBJECT, properties: { score: { type: SchemaType.NUMBER }, issues: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }, details: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } } }, required: ["score", "issues", "details"] },
-              keywordMatch: { type: SchemaType.OBJECT, properties: { score: { type: SchemaType.NUMBER }, matched: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }, missing: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }, synonymMatched: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } } }, required: ["score", "matched", "missing", "synonymMatched"] },
-              sections: { type: SchemaType.OBJECT, properties: { score: { type: SchemaType.NUMBER }, present: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }, missing: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } } }, required: ["score", "present", "missing"] },
-              experience: { type: SchemaType.OBJECT, properties: { score: { type: SchemaType.NUMBER }, highlights: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }, quantifiedBullets: { type: SchemaType.NUMBER }, totalBullets: { type: SchemaType.NUMBER }, actionVerbCount: { type: SchemaType.NUMBER } }, required: ["score", "quantifiedBullets", "totalBullets", "actionVerbCount", "highlights"] },
-              education: { type: SchemaType.OBJECT, properties: { score: { type: SchemaType.NUMBER }, notes: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } } }, required: ["score", "notes"] }
+              formatting: { type: "object", properties: { score: { type: "number" }, issues: { type: "array", items: { type: "string" } }, details: { type: "array", items: { type: "string" } } }, required: ["score", "issues", "details"] },
+              keywordMatch: { type: "object", properties: { score: { type: "number" }, matched: { type: "array", items: { type: "string" } }, missing: { type: "array", items: { type: "string" } }, synonymMatched: { type: "array", items: { type: "string" } } }, required: ["score", "matched", "missing", "synonymMatched"] },
+              sections: { type: "object", properties: { score: { type: "number" }, present: { type: "array", items: { type: "string" } }, missing: { type: "array", items: { type: "string" } } }, required: ["score", "present", "missing"] },
+              experience: { type: "object", properties: { score: { type: "number" }, highlights: { type: "array", items: { type: "string" } }, quantifiedBullets: { type: "number" }, totalBullets: { type: "number" }, actionVerbCount: { type: "number" } }, required: ["score", "quantifiedBullets", "totalBullets", "actionVerbCount", "highlights"] },
+              education: { type: "object", properties: { score: { type: "number" }, notes: { type: "array", items: { type: "string" } } }, required: ["score", "notes"] }
             },
             required: ["formatting", "keywordMatch", "sections", "experience", "education"]
           },
           suggestions: {
-            type: SchemaType.ARRAY,
+            type: "array",
             items: {
-              type: SchemaType.OBJECT,
+              type: "object",
               properties: {
-                summary: { type: SchemaType.STRING },
-                details: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
-                impact: { type: SchemaType.STRING, enum: ["critical", "high", "medium", "low"] },
-                platforms: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
+                summary: { type: "string" },
+                details: { type: "array", items: { type: "string" } },
+                impact: { type: "string", enum: ["critical", "high", "medium", "low"] },
+                platforms: { type: "array", items: { type: "string" } }
               },
               required: ["summary", "details", "impact", "platforms"]
             }

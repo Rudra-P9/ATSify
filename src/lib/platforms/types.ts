@@ -12,7 +12,7 @@ export interface ATSProfile {
   marketShare: string;
   description: string;
   parsingStrictness: number;
-  keywordStrategy: 'semantic' | 'exact';
+  keywordStrategy: 'exact' | 'fuzzy' | 'semantic';
   weights: {
     formatting: number;
     keywordMatch: number;

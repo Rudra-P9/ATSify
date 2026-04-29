@@ -20,23 +20,8 @@ export function scoreAgainstProfile(input: ScoringInput, profile: ATSProfile): S
   const quirkAdjustment = computeQuirkAdjustment(input, profile);
   let overallScore = weightedScore + quirkAdjustment.totalAdjustment;
 
-  // better differentiate scores between platforms based on identity
-  if (profile.name === 'Taleo') {
-    // Taleo is the harshest on non-exact keyword overlap
-    if (breakdown.keywordMatch.score < 60) {
-      overallScore -= 12;
-    }
-  } else if (profile.name === 'Greenhouse') {
-    // Greenhouse is more lenient and focuses on semantic flow
-    if (breakdown.keywordMatch.score > 40) {
-      overallScore += 8;
-    }
-  } else if (profile.name === 'Workday') {
-    // Workday is sensitive to formatting; if formatting is low, drop overall faster
-    if (breakdown.formatting.score < 60) {
-      overallScore -= 15;
-    }
-  }
+  // Platform differentiation is handled through weights and quirk functions.
+  // Do NOT add hardcoded bonuses/penalties here — use profile.quirks instead.
 
   const finalScore = Math.max(
     0,

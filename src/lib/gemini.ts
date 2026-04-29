@@ -1,10 +1,13 @@
 import { GoogleGenAI, Type } from "@google/genai";
-import { runDeterministicEngine } from "./engine";
+import { scoreResume } from "./scorer/engine";
+import { extractMetadata } from "./engine/metadata";
 import { ParsedDocument } from "./parser/types";
 import { buildFullScoringPrompt } from "./gemini/prompts";
+import type { ScoringInput, ScoreResult } from "./scorer/types";
 
 const apiKey = process.env.GEMINI_API_KEY;
 const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+
 export interface ResumeMetadata {
   wordCount: number;
   sections: string[];
@@ -88,14 +91,115 @@ const ATS_SCHEMA = {
   required: ["results"]
 };
 
+// ---------------------------------------------------------------------------
+// Adapter: converts scorer ScoreResult[] → ATSResult[] (UI-expected format)
+// ---------------------------------------------------------------------------
+
+/**
+ * Converts flat suggestion strings from the deterministic scorer into
+ * structured suggestion objects expected by the UI.
+ */
+function classifySuggestion(
+  text: string,
+  platform: string
+): ATSResult['suggestions'][0] {
+  // Determine impact level based on keywords in the suggestion
+  let impact: 'critical' | 'high' | 'medium' | 'low' = 'medium';
+  const lower = text.toLowerCase();
+
+  if (lower.includes('missing keywords') || lower.includes('missing sections') || lower.includes('exact keyword matching')) {
+    impact = 'critical';
+  } else if (lower.includes('add ') || lower.includes('remove ') || lower.includes('switch to')) {
+    impact = 'high';
+  } else if (lower.includes('consider') || lower.includes('ensure')) {
+    impact = 'medium';
+  } else {
+    impact = 'low';
+  }
+
+  return {
+    summary: text,
+    details: [text],
+    impact,
+    platforms: [platform]
+  };
+}
+
+/**
+ * Converts ScoreResult[] from the scorer engine into ATSResult[] for the UI.
+ * The breakdown shapes are compatible; only suggestions need restructuring.
+ */
+function adaptScorerResults(scoreResults: ScoreResult[]): ATSResult[] {
+  return scoreResults.map(result => ({
+    system: result.system,
+    vendor: result.vendor,
+    overallScore: result.overallScore,
+    passesFilter: result.passesFilter,
+    breakdown: result.breakdown,
+    suggestions: result.suggestions.map(s => classifySuggestion(s, result.system))
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Builds a ScoringInput from a ParsedDocument for the scorer engine
+// ---------------------------------------------------------------------------
+
+function buildScoringInput(doc: ParsedDocument, jobDescription?: string): ScoringInput {
+  // Extract bullet points from experience entries (populated by parser)
+  const experienceBullets = doc.experience.flatMap(entry => entry.bullets);
+
+  // If parser didn't extract bullets, fall back to extracting from raw text
+  const fallbackBullets = experienceBullets.length > 0
+    ? experienceBullets
+    : doc.rawText.split('\n')
+      .map(l => l.trim())
+      .filter(l => /^[-•·▪◦▸►‣*]\s/.test(l) || /^\d+\.\s/.test(l))
+      .map(l => l.replace(/^[-•·▪◦▸►‣*]\s*/, '').replace(/^\d+\.\s*/, ''));
+
+  // Extract education text from education entries or sections
+  const educationText = doc.education.length > 0
+    ? doc.education.map(e => e.rawText).join('\n\n')
+    : doc.sections
+      .filter(s => s.type === 'education')
+      .map(s => s.content)
+      .join('\n\n');
+
+  return {
+    hasMultipleColumns: doc.metadata.hasMultipleColumns,
+    hasTables: doc.metadata.hasTables,
+    hasImages: doc.metadata.hasImages,
+    pageCount: doc.metadata.pageCount,
+    wordCount: doc.metadata.wordCount,
+    resumeText: doc.rawText,
+    resumeSections: doc.sections.map(s => s.type),
+    experienceBullets: fallbackBullets,
+    educationText,
+    jobDescription,
+    resumeSkills: doc.skills || []
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Main entry point
+// ---------------------------------------------------------------------------
+
 export async function analyzeResume(doc: ParsedDocument, jobDescription?: string): Promise<AnalysisResponse> {
+  // Build metadata from parser outputs (now populated), with engine extraction as supplement
+  const extracted = extractMetadata(doc.rawText);
   const metadata: ResumeMetadata = {
     wordCount: doc.metadata.wordCount,
     sections: doc.sections.map(s => s.type),
-    skills: doc.skills,
-    positions: doc.experience.length,
-    education: doc.education.map(e => e.degree || e.rawText),
-    contactInfo: doc.contact,
+    skills: doc.skills.length > 0 ? doc.skills : extracted.skills,
+    positions: doc.experience.length > 0 ? doc.experience.length : extracted.positions,
+    education: doc.education.length > 0
+      ? doc.education.map(e => e.degree ? `${e.degree} in ${e.field}`.trim() : e.rawText)
+      : extracted.education,
+    contactInfo: {
+      email: doc.contact.email,
+      phone: doc.contact.phone,
+      linkedin: doc.contact.linkedin,
+      location: doc.contact.location
+    },
     checkmarks: {
       multiColumn: doc.metadata.hasMultipleColumns,
       tables: doc.metadata.hasTables,
@@ -131,12 +235,14 @@ export async function analyzeResume(doc: ParsedDocument, jobDescription?: string
         metadata
       };
     } catch (err) {
-      console.warn("[ATSify] Gemini unavailable – falling back to deterministic engine:", err);
+      console.warn("[ATSify] Gemini unavailable – falling back to scorer engine:", err);
     }
   }
 
-  // Fallback: deterministic rule-based scoring engine (stub if needed, or route via pipeline)
-  // For now, return a synthesized AnalysisResponse from the deterministic engine
-  // wait, runDeterministicEngine requires `resumeText`. We can just call it with doc.rawText
-  return runDeterministicEngine(doc.rawText, jobDescription);
+  // Fallback: deterministic scorer pipeline with platform profiles
+  const scoringInput = buildScoringInput(doc, jobDescription);
+  const scoreResults = scoreResume(scoringInput);
+  const results = adaptScorerResults(scoreResults);
+
+  return { results, metadata };
 }

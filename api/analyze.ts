@@ -164,7 +164,10 @@ export default async function handler(req: any, res: any) {
     });
 
     console.log("[ATSify-API] Starting Gemini ATS request...");
-    const prompt = buildFullScoringPrompt(resumeText, jobDescription);
+    const prompt = `
+    Analyze this resume briefly and return JSON:
+    ${resumeText.slice(0, 2000)}
+    `;
 
     const startTime = Date.now();
     const result = await model.generateContent(prompt);

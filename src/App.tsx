@@ -506,9 +506,9 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
                   : "bg-white/5 text-white/40 border-white/10"
               )}>
                 {scan.results[0].engineUsed === 'gemini' ? (
-                  <><Sparkles className="w-2.5 h-2.5" /> Powered by Gemini AI</>
+                  <><Sparkles className="w-2.5 h-2.5" /> Gemini AI Active</>
                 ) : (
-                  <><Zap className="w-2.5 h-2.5" /> Fallback scoring (AI unavailable)</>
+                  <><Zap className="w-2.5 h-2.5" /> Fallback Mode (AI unavailable)</>
                 )}
               </div>
             </div>

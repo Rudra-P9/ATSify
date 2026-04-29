@@ -1,4 +1,7 @@
 import express from 'express';
+import dotenv from 'dotenv';
+dotenv.config();
+import { POST as analyzeHandler } from './src/routes/api/analyze/+server.ts';
 import { createServer as createViteServer } from 'vite';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -18,9 +21,20 @@ async function startServer() {
     res.json({ status: 'ok', timestamp: new Date().toISOString() });
   });
 
+  // Gemini Analysis Proxy
+  app.post('/api/analyze', async (req, res) => {
+    try {
+      const result = await analyzeHandler(req);
+      if (result.error) {
+        return res.status(result.status || 500).json({ error: result.error });
+      }
+      res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  });
+
   // Since platform rules mandate Gemini calls from frontend,
-  // we won't implement the AI proxy here. 
-  // But we can add health checks or other backend logic.
 
   if (process.env.NODE_ENV !== 'production') {
     const vite = await createViteServer({

@@ -1,12 +1,11 @@
-import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { scoreResume } from "./scorer/engine";
 import { extractMetadata } from "./engine/metadata";
 import { ParsedDocument } from "./parser/types";
 import { buildFullScoringPrompt } from "./gemini/prompts";
 import type { ScoringInput, ScoreResult } from "./scorer/types";
 
+// Client-side key detection is now for legacy/debug info only
 const apiKey = (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY : null) || (import.meta as any).env?.VITE_GEMINI_API_KEY;
-const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export interface ResumeMetadata {
   wordCount: number;
@@ -212,68 +211,35 @@ export async function analyzeResume(doc: ParsedDocument, jobDescription?: string
   };
 
   // 2. Detection Logging
-  console.log("[ATSify-Debug] API Key Detected:", !!apiKey);
-  console.log("[ATSify-Debug] genAI Client Initialized:", !!genAI);
+  console.log("[ATSify-Debug] Client-side API Key Detected:", !!apiKey);
 
-  // Attempt Gemini analysis only when an API key is configured and genAI is valid
-  if (apiKey && genAI) {
-    try {
-      const modelName = "gemini-2.5-flash";
-      console.log("[ATSify-Trace] Model Name Used:", modelName);
-      
-      const model = genAI.getGenerativeModel({ 
-        model: modelName,
-        generationConfig: {
-          responseMimeType: "application/json",
-          responseSchema: ATS_SCHEMA,
-          temperature: 0.1
-        }
-      });
+  // Attempt server-side Gemini analysis
+  try {
+    console.log("[ATSify-Trace] Requesting Gemini analysis from server...");
+    
+    const response = await fetch('/api/analyze', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        resumeText: doc.rawText, 
+        jobDescription 
+      })
+    });
 
-      // Step 4: Simple test call
-      console.log("[ATSify-Trace] Executing pre-analysis test call...");
-      const testResult = await model.generateContent("Say hello in one sentence");
-      console.log("[ATSify-Test] Gemini Test Response:", testResult.response.text());
-
-      console.log("[ATSify-Trace] Starting Gemini AI request...");
-      const prompt = buildFullScoringPrompt(doc.rawText, jobDescription);
-
-      const startTime = Date.now();
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const duration = Date.now() - startTime;
-
-      const text = response.text();
-      if (!text) {
-        console.error("[ATSify-Trace] Gemini Failure: Empty response text");
-        throw new Error("No response from AI");
-      }
-      
-      const parsed = JSON.parse(text.trim());
-      console.log(`[ATSify-Trace] Gemini Success (${duration}ms)`);
-      console.log("[ATSify-Debug] Gemini results returned:", parsed?.results?.length);
-
-      // Basic schema validation: must have exactly 6 results
-      if (!parsed?.results || parsed.results.length !== 6) {
-        console.warn("[ATSify-Debug] Validation Failed: Expected 6 results, got", parsed?.results?.length);
-        throw new Error("Gemini response did not contain exactly 6 results");
-      }
-
-      // Check for required fields in first result as sample
-      const sample = parsed.results[0];
-      const hasRequired = sample.system && sample.overallScore !== undefined && sample.breakdown;
-      console.log("[ATSify-Debug] Response Validation - Required fields present:", hasRequired);
-
-      return {
-        results: (parsed.results as ATSResult[]).map(r => ({ ...r, engineUsed: 'gemini' })),
-        metadata
-      };
-    } catch (err) {
-      console.warn("[ATSify-Trace] Fallback Activation – Gemini failed or returned error:", err);
-      console.error("[ATSify-Debug] Gemini Error Detail:", err);
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.error || `Server returned ${response.status}`);
     }
-  } else {
-    console.log("[ATSify-Trace] Skipping AI path - API key or client missing");
+
+    const data = await response.json();
+    console.log("[ATSify-Trace] Gemini Analysis Received from Server");
+
+    return {
+      results: (data.results as ATSResult[]).map(r => ({ ...r, engineUsed: 'gemini' })),
+      metadata
+    };
+  } catch (err) {
+    console.warn("[ATSify-Trace] Fallback Activation – Server-side Gemini failed:", err);
   }
 
   // Fallback: deterministic scorer pipeline with platform profiles

@@ -118,6 +118,39 @@ function extractJSON(raw: string) {
   return null;
 }
 
+const SYSTEMS = [
+  "Workday",
+  "Taleo",
+  "iCIMS",
+  "Greenhouse",
+  "Lever",
+  "SuccessFactors"
+];
+
+function normalizeResults(results: any[]) {
+  const map = new Map(results.map(r => [r.system, r]));
+
+  return SYSTEMS.map(system => {
+    if (map.has(system)) return map.get(system);
+
+    // fallback placeholder if missing
+    return {
+      system,
+      vendor: "",
+      overallScore: 0,
+      passesFilter: false,
+      breakdown: {
+        formatting: { score: 0, issues: [], details: [] },
+        keywordMatch: { score: 0, matched: [], missing: [], synonymMatched: [] },
+        sections: { score: 0, present: [], missing: [] },
+        experience: { score: 0, quantifiedBullets: 0, totalBullets: 0, actionVerbCount: 0, highlights: [] },
+        education: { score: 0, notes: [] }
+      },
+      suggestions: []
+    };
+  });
+}
+
 export default async function handler(req: any, res: any) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method Not Allowed" });
@@ -199,10 +232,12 @@ export default async function handler(req: any, res: any) {
       });
     }
 
-    console.log("[ATSify-API] Validation Success. Results count:", parsed.results.length);
+    const normalized = normalizeResults(parsed.results);
+
+    console.log("[ATSify-API] Normalized results count:", normalized.length);
 
     return res.status(200).json({
-      results: parsed.results,
+      results: normalized,
       engineUsed: "gemini"
     });
   } catch (error: any) {

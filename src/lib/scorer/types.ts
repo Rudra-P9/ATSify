@@ -51,6 +51,7 @@ export interface ScoreResult {
   passesFilter: boolean;
   breakdown: ScoreBreakdown;
   suggestions: string[];
+  engineUsed?: 'gemini' | 'deterministic-fallback';
 }
 
 export interface ScoringWeights {

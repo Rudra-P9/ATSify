@@ -36,7 +36,8 @@ export function scoreAgainstProfile(input: ScoringInput, profile: ATSProfile): S
     overallScore: finalScore,
     passesFilter: finalScore >= profile.passingScore,
     breakdown,
-    suggestions
+    suggestions,
+    engineUsed: 'deterministic-fallback'
   };
 }
 

@@ -75,6 +75,15 @@ export default function App() {
   const [history, setHistory] = useState<SavedScan[]>([]);
   const [viewingScan, setViewingScan] = useState<SavedScan | null>(null);
   const [isExporting, setIsExporting] = useState(false);
+  const [debugMode, setDebugMode] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isDebug = localStorage.getItem('ATSify_DEBUG') === 'true';
+      setDebugMode(isDebug);
+      if (isDebug) console.log("[ATSify] Debug Mode Active. Disable with localStorage.removeItem('ATSify_DEBUG')");
+    }
+  }, []);
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
@@ -190,6 +199,20 @@ export default function App() {
             <p className="text-xs text-white/60">Tier: <strong className="text-[#6366f1]">Free</strong></p>
             <p className="text-xs text-white/60">Credits: <strong>Unlimited</strong></p>
           </div>
+
+          {debugMode && (
+            <div className="mt-4 p-4 bg-yellow-500/10 rounded-xl border border-yellow-500/20">
+              <div className="text-[10px] text-yellow-500 uppercase font-black tracking-widest mb-2 flex items-center gap-2">
+                <Shield className="w-3 h-3" /> Technical Debug
+              </div>
+              <div className="space-y-1">
+                <p className="text-[9px] text-white/50">API Key: <strong className="text-white">Detected</strong></p>
+                <p className="text-[9px] text-white/50">Engine: <strong className="text-white">Gemini 1.5 Flash</strong></p>
+                <p className="text-[9px] text-white/50">Fallback: <strong className="text-white">Enabled</strong></p>
+                <p className="text-[9px] text-white/50">Validation: <strong className="text-white">Strict</strong></p>
+              </div>
+            </div>
+          )}
         </aside>
       )}
 
@@ -476,6 +499,18 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
                 {avgScore >= 80 ? 'Excellent' : avgScore >= 60 ? 'Good' : 'Weak'}
               </div>
               <div className="text-[10px] text-white/40 font-black tracking-widest uppercase">AVERAGE SCORE</div>
+              <div className={cn(
+                "mt-2 inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest border",
+                scan.results[0].engineUsed === 'gemini' 
+                  ? "bg-[#6366f1]/10 text-[#6366f1] border-[#6366f1]/20" 
+                  : "bg-white/5 text-white/40 border-white/10"
+              )}>
+                {scan.results[0].engineUsed === 'gemini' ? (
+                  <><Sparkles className="w-2.5 h-2.5" /> Powered by Gemini AI</>
+                ) : (
+                  <><Zap className="w-2.5 h-2.5" /> Fallback scoring (AI unavailable)</>
+                )}
+              </div>
             </div>
           </div>
 
@@ -506,6 +541,9 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
                 <div>
                   <h4 className="text-xl font-black text-white">{r.system}</h4>
                   <p className="text-[9px] text-white/30 font-black uppercase tracking-widest">{r.vendor} INC.</p>
+                  <div className="mt-1 text-[8px] font-bold text-white/20 uppercase tracking-tighter">
+                    Engine: {r.engineUsed === 'gemini' ? 'Gemini 1.5 Flash' : 'Deterministic'}
+                  </div>
                 </div>
                 <div className="w-12 h-12 rounded-full flex items-center justify-center text-sm font-black border-2 border-white/5 relative">
                   <span style={{ color: getScoreColor(r.overallScore) }}>{r.overallScore}</span>

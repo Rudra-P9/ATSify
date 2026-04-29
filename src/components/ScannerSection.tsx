@@ -71,8 +71,9 @@ export default function ScannerSection({ onResults }: ScannerSectionProps) {
             const doc = await parseDocument(file);
             const text = doc.rawText;
 
-            // Step 2: Analysis (Gemini)
+            console.log("[ATSify-UI] Initiating analysis for:", file.name);
             const response = await analyzeResume(doc, jobDescription);
+            console.log("[ATSify-UI] Analysis completed. Engine used:", response.results[0]?.engineUsed);
 
             // Step 3: Complete - Smoothly transition to 100%
             setProgress(100);

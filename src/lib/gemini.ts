@@ -1,12 +1,12 @@
-import { GoogleGenAI, Type } from "@google/genai";
+import { GoogleGenerativeAI, SchemaType } from "@google/generative-ai";
 import { scoreResume } from "./scorer/engine";
 import { extractMetadata } from "./engine/metadata";
 import { ParsedDocument } from "./parser/types";
 import { buildFullScoringPrompt } from "./gemini/prompts";
 import type { ScoringInput, ScoreResult } from "./scorer/types";
 
-const apiKey = process.env.GEMINI_API_KEY;
-const ai = apiKey ? new GoogleGenAI({ apiKey }) : null;
+const apiKey = (typeof process !== 'undefined' ? process.env?.GEMINI_API_KEY : null) || (import.meta as any).env?.VITE_GEMINI_API_KEY;
+const genAI = apiKey ? new GoogleGenerativeAI(apiKey) : null;
 
 export interface ResumeMetadata {
   wordCount: number;
@@ -41,6 +41,7 @@ export interface ATSResult {
     education: { score: number; notes: string[] };
   };
   suggestions: { summary: string; details: string[]; impact: 'critical' | 'high' | 'medium' | 'low'; platforms: string[] }[];
+  engineUsed: 'gemini' | 'deterministic-fallback';
 }
 
 export interface AnalysisResponse {
@@ -49,37 +50,37 @@ export interface AnalysisResponse {
 }
 
 const ATS_SCHEMA = {
-  type: Type.OBJECT,
+  type: SchemaType.OBJECT,
   properties: {
     results: {
-      type: Type.ARRAY,
+      type: SchemaType.ARRAY,
       items: {
-        type: Type.OBJECT,
+        type: SchemaType.OBJECT,
         properties: {
-          system: { type: Type.STRING },
-          vendor: { type: Type.STRING },
-          overallScore: { type: Type.NUMBER },
-          passesFilter: { type: Type.BOOLEAN },
+          system: { type: SchemaType.STRING },
+          vendor: { type: SchemaType.STRING },
+          overallScore: { type: SchemaType.NUMBER },
+          passesFilter: { type: SchemaType.BOOLEAN },
           breakdown: {
-            type: Type.OBJECT,
+            type: SchemaType.OBJECT,
             properties: {
-              formatting: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, issues: { type: Type.ARRAY, items: { type: Type.STRING } }, details: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "issues", "details"] },
-              keywordMatch: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, matched: { type: Type.ARRAY, items: { type: Type.STRING } }, missing: { type: Type.ARRAY, items: { type: Type.STRING } }, synonymMatched: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "matched", "missing", "synonymMatched"] },
-              sections: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, present: { type: Type.ARRAY, items: { type: Type.STRING } }, missing: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "present", "missing"] },
-              experience: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, highlights: { type: Type.ARRAY, items: { type: Type.STRING } }, quantifiedBullets: { type: Type.NUMBER }, totalBullets: { type: Type.NUMBER }, actionVerbCount: { type: Type.NUMBER } }, required: ["score", "quantifiedBullets", "totalBullets", "actionVerbCount", "highlights"] },
-              education: { type: Type.OBJECT, properties: { score: { type: Type.NUMBER }, notes: { type: Type.ARRAY, items: { type: Type.STRING } } }, required: ["score", "notes"] }
+              formatting: { type: SchemaType.OBJECT, properties: { score: { type: SchemaType.NUMBER }, issues: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }, details: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } } }, required: ["score", "issues", "details"] },
+              keywordMatch: { type: SchemaType.OBJECT, properties: { score: { type: SchemaType.NUMBER }, matched: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }, missing: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }, synonymMatched: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } } }, required: ["score", "matched", "missing", "synonymMatched"] },
+              sections: { type: SchemaType.OBJECT, properties: { score: { type: SchemaType.NUMBER }, present: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }, missing: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } } }, required: ["score", "present", "missing"] },
+              experience: { type: SchemaType.OBJECT, properties: { score: { type: SchemaType.NUMBER }, highlights: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }, quantifiedBullets: { type: SchemaType.NUMBER }, totalBullets: { type: SchemaType.NUMBER }, actionVerbCount: { type: SchemaType.NUMBER } }, required: ["score", "quantifiedBullets", "totalBullets", "actionVerbCount", "highlights"] },
+              education: { type: SchemaType.OBJECT, properties: { score: { type: SchemaType.NUMBER }, notes: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } } }, required: ["score", "notes"] }
             },
             required: ["formatting", "keywordMatch", "sections", "experience", "education"]
           },
           suggestions: {
-            type: Type.ARRAY,
+            type: SchemaType.ARRAY,
             items: {
-              type: Type.OBJECT,
+              type: SchemaType.OBJECT,
               properties: {
-                summary: { type: Type.STRING },
-                details: { type: Type.ARRAY, items: { type: Type.STRING } },
-                impact: { type: Type.STRING, enum: ["critical", "high", "medium", "low"] },
-                platforms: { type: Type.ARRAY, items: { type: Type.STRING } }
+                summary: { type: SchemaType.STRING },
+                details: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } },
+                impact: { type: SchemaType.STRING, enum: ["critical", "high", "medium", "low"] },
+                platforms: { type: SchemaType.ARRAY, items: { type: SchemaType.STRING } }
               },
               required: ["summary", "details", "impact", "platforms"]
             }
@@ -137,7 +138,8 @@ function adaptScorerResults(scoreResults: ScoreResult[]): ATSResult[] {
     overallScore: result.overallScore,
     passesFilter: result.passesFilter,
     breakdown: result.breakdown,
-    suggestions: result.suggestions.map(s => classifySuggestion(s, result.system))
+    suggestions: result.suggestions.map(s => classifySuggestion(s, result.system)),
+    engineUsed: 'deterministic-fallback'
   }));
 }
 
@@ -209,42 +211,78 @@ export async function analyzeResume(doc: ParsedDocument, jobDescription?: string
     }
   };
 
-  // Attempt Gemini analysis only when an API key is configured and ai is valid
-  if (apiKey && ai) {
-    try {
-      const prompt = buildFullScoringPrompt(doc.rawText, jobDescription);
+  // 2. Detection Logging
+  console.log("[ATSify-Debug] API Key Detected:", !!apiKey);
+  console.log("[ATSify-Debug] genAI Client Initialized:", !!genAI);
 
-      const response = await ai.models.generateContent({
-        model: "gemini-1.5-flash",
-        contents: prompt,
-        config: {
+  // Attempt Gemini analysis only when an API key is configured and genAI is valid
+  if (apiKey && genAI) {
+    try {
+      const modelName = "gemini-2.5-flash";
+      console.log("[ATSify-Trace] Model Name Used:", modelName);
+      
+      const model = genAI.getGenerativeModel({ 
+        model: modelName,
+        generationConfig: {
           responseMimeType: "application/json",
           responseSchema: ATS_SCHEMA,
           temperature: 0.1
         }
       });
 
-      if (!response.text) throw new Error("No response from AI");
-      const parsed = JSON.parse(response.text.trim());
+      // Step 4: Simple test call
+      console.log("[ATSify-Trace] Executing pre-analysis test call...");
+      const testResult = await model.generateContent("Say hello in one sentence");
+      console.log("[ATSify-Test] Gemini Test Response:", testResult.response.text());
+
+      console.log("[ATSify-Trace] Starting Gemini AI request...");
+      const prompt = buildFullScoringPrompt(doc.rawText, jobDescription);
+
+      const startTime = Date.now();
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const duration = Date.now() - startTime;
+
+      const text = response.text();
+      if (!text) {
+        console.error("[ATSify-Trace] Gemini Failure: Empty response text");
+        throw new Error("No response from AI");
+      }
+      
+      const parsed = JSON.parse(text.trim());
+      console.log(`[ATSify-Trace] Gemini Success (${duration}ms)`);
+      console.log("[ATSify-Debug] Gemini results returned:", parsed?.results?.length);
 
       // Basic schema validation: must have exactly 6 results
       if (!parsed?.results || parsed.results.length !== 6) {
+        console.warn("[ATSify-Debug] Validation Failed: Expected 6 results, got", parsed?.results?.length);
         throw new Error("Gemini response did not contain exactly 6 results");
       }
 
+      // Check for required fields in first result as sample
+      const sample = parsed.results[0];
+      const hasRequired = sample.system && sample.overallScore !== undefined && sample.breakdown;
+      console.log("[ATSify-Debug] Response Validation - Required fields present:", hasRequired);
+
       return {
-        results: parsed.results as ATSResult[],
+        results: (parsed.results as ATSResult[]).map(r => ({ ...r, engineUsed: 'gemini' })),
         metadata
       };
     } catch (err) {
-      console.warn("[ATSify] Gemini unavailable – falling back to scorer engine:", err);
+      console.warn("[ATSify-Trace] Fallback Activation – Gemini failed or returned error:", err);
+      console.error("[ATSify-Debug] Gemini Error Detail:", err);
     }
+  } else {
+    console.log("[ATSify-Trace] Skipping AI path - API key or client missing");
   }
 
   // Fallback: deterministic scorer pipeline with platform profiles
+  console.log("[ATSify-Trace] Executing Deterministic Scorer Engine...");
   const scoringInput = buildScoringInput(doc, jobDescription);
   const scoreResults = scoreResume(scoringInput);
   const results = adaptScorerResults(scoreResults);
+  
+  console.log("[ATSify-Trace] Deterministic Engine Completion. Results:", results.length);
 
   return { results, metadata };
 }

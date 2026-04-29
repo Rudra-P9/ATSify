@@ -216,12 +216,90 @@ CRITICAL:
 
 {
   "results": [
-    { "system": "Workday" },
-    { "system": "Taleo" },
-    { "system": "iCIMS" },
-    { "system": "Greenhouse" },
-    { "system": "Lever" },
-    { "system": "SuccessFactors" }
+    {
+      "system": "Workday",
+      "vendor": "Workday Inc.",
+      "overallScore": 70,
+      "passesFilter": true,
+      "breakdown": {
+        "formatting": { "score": 70, "issues": [], "details": [] },
+        "keywordMatch": { "score": 70, "matched": [], "missing": [], "synonymMatched": [] },
+        "sections": { "score": 70, "present": [], "missing": [] },
+        "experience": { "score": 70, "quantifiedBullets": 0, "totalBullets": 0, "actionVerbCount": 0, "highlights": [] },
+        "education": { "score": 70, "notes": [] }
+      },
+      "suggestions": []
+    },
+    {
+      "system": "Taleo",
+      "vendor": "Oracle Corporation",
+      "overallScore": 70,
+      "passesFilter": true,
+      "breakdown": {
+        "formatting": { "score": 70, "issues": [], "details": [] },
+        "keywordMatch": { "score": 70, "matched": [], "missing": [], "synonymMatched": [] },
+        "sections": { "score": 70, "present": [], "missing": [] },
+        "experience": { "score": 70, "quantifiedBullets": 0, "totalBullets": 0, "actionVerbCount": 0, "highlights": [] },
+        "education": { "score": 70, "notes": [] }
+      },
+      "suggestions": []
+    },
+    {
+      "system": "iCIMS",
+      "vendor": "iCIMS Inc.",
+      "overallScore": 70,
+      "passesFilter": true,
+      "breakdown": {
+        "formatting": { "score": 70, "issues": [], "details": [] },
+        "keywordMatch": { "score": 70, "matched": [], "missing": [], "synonymMatched": [] },
+        "sections": { "score": 70, "present": [], "missing": [] },
+        "experience": { "score": 70, "quantifiedBullets": 0, "totalBullets": 0, "actionVerbCount": 0, "highlights": [] },
+        "education": { "score": 70, "notes": [] }
+      },
+      "suggestions": []
+    },
+    {
+      "system": "Greenhouse",
+      "vendor": "Greenhouse Software",
+      "overallScore": 70,
+      "passesFilter": true,
+      "breakdown": {
+        "formatting": { "score": 70, "issues": [], "details": [] },
+        "keywordMatch": { "score": 70, "matched": [], "missing": [], "synonymMatched": [] },
+        "sections": { "score": 70, "present": [], "missing": [] },
+        "experience": { "score": 70, "quantifiedBullets": 0, "totalBullets": 0, "actionVerbCount": 0, "highlights": [] },
+        "education": { "score": 70, "notes": [] }
+      },
+      "suggestions": []
+    },
+    {
+      "system": "Lever",
+      "vendor": "Employ Inc.",
+      "overallScore": 70,
+      "passesFilter": true,
+      "breakdown": {
+        "formatting": { "score": 70, "issues": [], "details": [] },
+        "keywordMatch": { "score": 70, "matched": [], "missing": [], "synonymMatched": [] },
+        "sections": { "score": 70, "present": [], "missing": [] },
+        "experience": { "score": 70, "quantifiedBullets": 0, "totalBullets": 0, "actionVerbCount": 0, "highlights": [] },
+        "education": { "score": 70, "notes": [] }
+      },
+      "suggestions": []
+    },
+    {
+      "system": "SuccessFactors",
+      "vendor": "SAP SE",
+      "overallScore": 70,
+      "passesFilter": true,
+      "breakdown": {
+        "formatting": { "score": 70, "issues": [], "details": [] },
+        "keywordMatch": { "score": 70, "matched": [], "missing": [], "synonymMatched": [] },
+        "sections": { "score": 70, "present": [], "missing": [] },
+        "experience": { "score": 70, "quantifiedBullets": 0, "totalBullets": 0, "actionVerbCount": 0, "highlights": [] },
+        "education": { "score": 70, "notes": [] }
+      },
+      "suggestions": []
+    }
   ]
 }
 

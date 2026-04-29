@@ -132,6 +132,7 @@ function extractContactInfo(text: string): ResumeMetadata['contactInfo'] {
   const locationMatch = text.match(/\b([A-Z][a-zA-Z\s]{1,20},\s*(?:[A-Z]{2}|[A-Z][a-zA-Z\s]{2,15}))\b/);
 
   return {
+    name: null,
     email: emailMatch?.[0] || null,
     phone: phoneMatch?.[0] || null,
     linkedin: linkedinMatch?.[0] || null,

@@ -12,8 +12,37 @@ export function extractContactInfo(text: string): ContactInfo {
   const linkedin = text.match(linkedinRegex)?.[0] || null;
   const github = text.match(githubRegex)?.[0] || null;
 
+  // Extract name: heuristic looking at the first few lines
+  let name: string | null = null;
+  const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+  
+  // Look at the first 10 lines for something that looks like a name
+  for (let i = 0; i < Math.min(10, lines.length); i++) {
+    const line = lines[i];
+    // A name is typically 2-4 words, mostly letters, doesn't contain contact info markers
+    if (
+      line.split(/\s+/).length >= 2 &&
+      line.split(/\s+/).length <= 4 &&
+      !/(resume|cv|curriculum vitae|email|phone|address|mobile|linkedin|github)/i.test(line) &&
+      !emailRegex.test(line) &&
+      !phoneRegex.test(line) &&
+      !linkedinRegex.test(line)
+    ) {
+      // Clean up any trailing punctuation
+      const cleanName = line.replace(/[,|:-].*$/, '').trim();
+      // Check if it's mostly capitalized words (like a name should be)
+      const words = cleanName.split(/\s+/);
+      const isCapitalized = words.every(w => /^[A-Z]/.test(w));
+      
+      if (cleanName.length > 3 && isCapitalized) {
+        name = cleanName;
+        break;
+      }
+    }
+  }
+
   return {
-    name: null,
+    name,
     email,
     phone,
     linkedin,

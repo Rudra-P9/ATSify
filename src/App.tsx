@@ -641,7 +641,10 @@ function ResultsSection({ scan, onBack }: { scan: SavedScan, onBack: () => void 
             <div className="flex flex-col md:flex-row gap-6">
               <div className="flex-1 space-y-2 text-sm text-white/60 font-medium bg-white/[0.01] p-4 rounded-2xl border border-white/5">
                 <h4 className="text-[10px] font-black text-white/30 uppercase tracking-widest mb-3">Contact Info</h4>
-                <p className="flex items-center gap-2 truncate"><UserIcon className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.email?.split('@')[0]?.replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Candidate'}</p>
+                <p className="flex items-center gap-2 truncate">
+                  <UserIcon className="w-4 h-4 text-white/30" /> 
+                  {scan.metadata.contactInfo.name || scan.metadata.contactInfo.email?.split('@')[0]?.replace(/[._]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Candidate'}
+                </p>
                 {scan.metadata.contactInfo.email && <p className="flex items-center gap-2 truncate"><Globe className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.email}</p>}
                 {scan.metadata.contactInfo.phone && <p className="flex items-center gap-2 truncate"><ShieldCheck className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.phone}</p>}
                 {scan.metadata.contactInfo.linkedin && <p className="flex items-center gap-2 truncate"><Building2 className="w-4 h-4 text-white/30" /> {scan.metadata.contactInfo.linkedin}</p>}

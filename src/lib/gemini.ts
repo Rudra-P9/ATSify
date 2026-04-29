@@ -15,6 +15,7 @@ export interface ResumeMetadata {
   positions: number;
   education: string[];
   contactInfo: {
+    name: string | null;
     email: string | null;
     phone: string | null;
     linkedin: string | null;
@@ -195,6 +196,7 @@ export async function analyzeResume(doc: ParsedDocument, jobDescription?: string
       ? doc.education.map(e => e.degree ? `${e.degree} in ${e.field}`.trim() : e.rawText)
       : extracted.education,
     contactInfo: {
+      name: doc.contact.name,
       email: doc.contact.email,
       phone: doc.contact.phone,
       linkedin: doc.contact.linkedin,

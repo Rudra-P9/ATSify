@@ -36,8 +36,11 @@ export function matchKeywords(
     // A typical resume with 10-15 extracted skills should score around 65-75.
     const resumeKeywords = extractKeywords(resumeText);
     const baseScore = 15;
-    const densityScore = Math.min(55, resumeKeywords.length * 5);
-    const score = Math.min(80, baseScore + densityScore);
+    // Differentiate baseline difficulty based on platform matching capabilities
+    // Exact match systems are inherently harsher and require higher baseline density
+    const strategyMultiplier = strategy === 'semantic' ? 1.2 : strategy === 'fuzzy' ? 1.0 : 0.8;
+    const densityScore = Math.min(55, resumeKeywords.length * 4 * strategyMultiplier);
+    const score = Math.min(80, Math.round(baseScore + densityScore));
     return {
       score,
       matched: resumeKeywords,

@@ -29,7 +29,7 @@
 
 **ATSify Intelligence** is an immersive, high-fidelity resume analysis engine designed to simulate enterprise Applicant Tracking Systems (ATS). Built with React 18, TypeScript, and powered by Google Gemini 1.5 Flash, it reverse-engineers the scoring logic of platforms like Workday, Taleo, and Greenhouse to give job seekers an unfair advantage.
 
-<p align="center"><strong><a href="https://ais-pre-xh2hzvdb4m432ksnz22ire-428353312043.us-east1.run.app">Live Demo → Initializing System...</a></strong></p>
+<p align="center"><strong><a href="https://atsify-scanner.vercel.app/">Live Demo → Initializing System...</a></strong></p>
 
 <details>
 	<summary><b>Table of Contents</b></summary>

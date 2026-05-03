@@ -3,19 +3,19 @@
 # ATSify Intelligence — Beat the Algorithm
 
 <p align="center">
-	<a href="https://github.com/Rudra-P9/ATSify-Intelligence/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/Rudra-P9/ATSify-Intelligence?style=social"></a>
-	<a href="https://github.com/Rudra-P9/ATSify-Intelligence/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/Rudra-P9/ATSify-Intelligence?style=social"></a>
+	<a href="https://github.com/Rudra-P9/ATSify/stargazers"><img alt="Stars" src="https://img.shields.io/github/stars/Rudra-P9/ATSify?style=social"></a>
+	<a href="https://github.com/Rudra-P9/ATSify/network/members"><img alt="Forks" src="https://img.shields.io/github/forks/Rudra-P9/ATSify?style=social"></a>
 	<a href="#tech-stack"><img alt="Built with" src="https://img.shields.io/badge/Built%20with-Vite%20·%20React%20·%20Twin-915EFF"></a>
 	<a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-MIT-blue"></a>
 	<a href="https://ais-pre-xh2hzvdb4m432ksnz22ire-428353312043.us-east1.run.app"><img alt="Live" src="https://img.shields.io/badge/live-atsify--intel-00C853"></a>
 </p>
 
 <p align="center">
-	<a href="https://github.com/Rudra-P9/ATSify-Intelligence/issues"><img alt="Issues" src="https://img.shields.io/github/issues/Rudra-P9/ATSify-Intelligence?color=%23915EFF"></a>
-	<a href="https://github.com/Rudra-P9/ATSify-Intelligence/pulls"><img alt="PRs" src="https://img.shields.io/github/issues-pr/Rudra-P9/ATSify-Intelligence?color=%2300B8D9"></a>
-	<img alt="Last commit" src="https://img.shields.io/github/last-commit/Rudra-P9/ATSify-Intelligence?color=%23A3E635">
-	<img alt="Top language" src="https://img.shields.io/github/languages/top/Rudra-P9/ATSify-Intelligence?color=%23F59E0B">
-	<img alt="Repo size" src="https://img.shields.io/github/repo-size/Rudra-P9/ATSify-Intelligence?color=%239999FF">
+	<a href="https://github.com/Rudra-P9/ATSify/issues"><img alt="Issues" src="https://img.shields.io/github/issues/Rudra-P9/ATSify?color=%23915EFF"></a>
+	<a href="https://github.com/Rudra-P9/ATSify/pulls"><img alt="PRs" src="https://img.shields.io/github/issues-pr/Rudra-P9/ATSify?color=%2300B8D9"></a>
+	<img alt="Last commit" src="https://img.shields.io/github/last-commit/Rudra-P9/ATSify?color=%23A3E635">
+	<img alt="Top language" src="https://img.shields.io/github/languages/top/Rudra-P9/ATSify?color=%23F59E0B">
+	<img alt="Repo size" src="https://img.shields.io/github/repo-size/Rudra-P9/ATSify?color=%239999FF">
 	<a href="#contributing"><img alt="PRs welcome" src="https://img.shields.io/badge/PRs-welcome-ff69b4.svg"></a>
 </p>
 
@@ -23,7 +23,7 @@
 
 <p align="center">
 	<picture>
-		<img src="favicon.jpeg" alt="ATSify Intelligence Logo" width="120" style="border-radius: 20px" />
+		<img src="public/assets/images/logo.jpeg" alt="ATSify Intelligence Logo" width="120" style="border-radius: 20px" />
 	</picture>
 </p>
 
@@ -174,7 +174,7 @@ The app is optimized for Cloud Run or any static hosting service that supports e
 <table>
 	<tr>
 		<td width="80">
-			<img src="favicon.jpeg" width="72" height="72" style="border-radius:50%" alt="Rudra Patel" />
+			<img src="https://github.com/Rudra-P9.png" width="72" height="72" style="border-radius:50%" alt="Rudra Patel" />
 		</td>
 		<td>
 			<b>Rudra Patel</b><br/>
